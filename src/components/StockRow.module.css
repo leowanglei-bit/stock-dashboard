@@ -1,0 +1,122 @@
+.stockRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.65rem;
+  background: var(--row-bg);
+  border: 1px solid var(--row-border);
+  border-radius: 8px;
+  transition: all 0.2s, background-color 0.8s;
+  cursor: grab;
+  overflow: hidden;
+  position: relative;
+}
+.stockRow:active { cursor: grabbing; }
+.stockRow:hover {
+  background: var(--row-hover-bg);
+  border-color: var(--border-highlight);
+}
+
+.stockRowDragging {
+  opacity: 0.4;
+  border: 2px dashed var(--primary);
+  transform: scale(0.98);
+}
+
+.stockLeft {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.grip {
+  color: var(--text-dim);
+  opacity: 0.3;
+  flex-shrink: 0;
+  cursor: grab;
+  transition: opacity 0.2s;
+}
+.stockRow:hover .grip { opacity: 0.8; }
+
+.marketBadge {
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.badgeStar { color: #3b82f6; background: #3b82f626; border: 1px solid #3b82f640; }
+.badgeChinext { color: #f59e0b; background: #f59e0b26; border: 1px solid #f59e0b40; }
+.badgeMain { color: var(--text-muted); background: #94a3b826; border: 1px solid #94a3b840; }
+.badgeBse { color: #10b981; background: #10b98126; border: 1px solid #10b98140; }
+
+.stockMeta { display: flex; flex-direction: column; min-width: 0; }
+.stockName {
+  color: var(--text-bright);
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stockCode {
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.stockPop {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.stockRight {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.price {
+  text-align: right;
+  min-width: 55px;
+  font-family: monospace;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.percentBox {
+  text-align: right;
+  border-radius: 4px;
+  min-width: 54px;
+  padding: 0.2rem 0.4rem;
+  font-family: monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.deleteBtn {
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  width: 1.15rem;
+  height: 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin-left: 2px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.stockRow:hover .deleteBtn { opacity: 0.7; }
+.stockRow:hover .deleteBtn:hover { opacity: 1; color: #ef4444; background: #ef444426; }

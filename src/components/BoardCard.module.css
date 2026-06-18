@@ -1,0 +1,124 @@
+.boardCard {
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+  overflow: hidden;
+  transition: border-color 0.2s, background-color 0.3s;
+}
+.boardCardDragOver {
+  border-color: var(--primary) !important;
+  background: rgba(99, 102, 241, 0.05) !important;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.titleWrapper { flex: 1; display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+
+.title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-bright);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+.title:hover { background: rgba(255,255,255,0.05); }
+
+.titleInput {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-bright);
+  background: var(--input-bg);
+  border: 1px solid var(--primary);
+  border-radius: 4px;
+  padding: 1px 4px;
+  width: 100%;
+  outline: none;
+}
+
+.headerRight {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.avgChange {
+  font-family: monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+}
+
+.actionBtn {
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.actionBtn:hover { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+
+.stockList {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  min-height: 50px;
+  overflow-y: auto;
+}
+
+.emptyHint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.toggleForm {
+  width: 100%;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border-color);
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.65rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  transition: all 0.2s;
+}
+.toggleForm:hover {
+  color: var(--text-bright);
+  background: var(--row-bg);
+}
