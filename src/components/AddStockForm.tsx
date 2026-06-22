@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import styles from './AddStockForm.module.css';
-import { searchStocksLocal } from '../data/stockSearchDb';
-import type { StockSearchItem } from '../data/stockSearchDb';
+import { searchStocks } from '../data/stockSearchDb';
+import type { StockSeed } from '../data/fullStocks';
 import { entryToStock } from '../data/utils';
 import type { Stock } from '../types';
 
@@ -13,8 +13,9 @@ interface Props {
 
 export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<StockSearchItem[]>([]);
+  const [results, setResults] = useState<StockSeed[]>([]);
   const [searched, setSearched] = useState(false);
+  const [searching, setSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const doAdd = (stock: Stock) => {
@@ -22,12 +23,14 @@ export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
     onClose();
   };
 
-  const handleSearch = useCallback(() => {
+  const handleSearch = useCallback(async () => {
     const q = query.trim();
     if (!q) return;
+    setSearching(true);
     setSearched(true);
-    const res = searchStocksLocal(q);
+    const res = await searchStocks(q);
     setResults(res);
+    setSearching(false);
   }, [query]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -45,15 +48,19 @@ export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
         />
-        <button className={styles.searchBtn} onClick={handleSearch}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-          </svg>
-          查询
+        <button className={styles.searchBtn} onClick={handleSearch} disabled={searching}>
+          {searching ? '搜索中...' : (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+              </svg>
+              查询
+            </>
+          )}
         </button>
       </div>
 
-      {searched && results.length > 0 && (
+      {searched && !searching && results.length > 0 && (
         <div className={styles.resultList}>
           {results.map((r) => (
             <button
@@ -72,7 +79,7 @@ export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
           ))}
         </div>
       )}
-      {searched && results.length === 0 && (
+      {searched && !searching && results.length === 0 && (
         <div className={styles.emptyResult}>未找到匹配的股票</div>
       )}
     </div>
