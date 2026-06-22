@@ -47,14 +47,6 @@ export function saveCache(data: StockSearchItem[]) {
   } catch { /* quota */ }
 }
 
-function shouldRefresh(): boolean {
-  try {
-    const last = localStorage.getItem(CACHE_TIME_KEY);
-    if (!last) return true;
-    return Date.now() - parseInt(last, 10) > 7 * 24 * 60 * 60 * 1000;
-  } catch { return true; }
-}
-
 // ───── API 获取全量股票（新浪市场中心） ─────
 // 每个市场节点每页 100 只，先取第一页获取 total 再算页数
 const MARKET_NODES: { node: string; market: StockSearchItem['market'] }[] = [
@@ -154,12 +146,4 @@ export async function forceRefreshStockDB(): Promise<number> {
     saveCache(data);
   }
   return data.length;
-}
-
-/** 每周检查更新 */
-export function tryRefreshStockDB() {
-  if (!shouldRefresh()) return;
-  fetchAllStocksFromAPI().then((data) => {
-    if (data.length > 100) saveCache(data);
-  }).catch(() => {});
 }
