@@ -12,13 +12,14 @@ import { tryRefreshStockDB } from './data/stockSearchDb';
 import type { Board, Stock, ThemeMode, ColorMode, ToastItem } from './types';
 
 // 数据版本 — 每次重大变更时递增，自动重置旧缓存
-const DATA_VERSION = 'v2';
+const DATA_VERSION = 'v3';
 const VERSION_KEY = 'stock_data_version';
 
 export default function App() {
   // 检查版本，不一致则清除旧数据
   if (localStorage.getItem(VERSION_KEY) !== DATA_VERSION) {
     localStorage.removeItem('stock_boards');
+    localStorage.removeItem('stock_board_order');
     localStorage.setItem(VERSION_KEY, DATA_VERSION);
   }
 
@@ -27,11 +28,25 @@ export default function App() {
   const [intervalMs, setIntervalMs] = useLocalStorage('stock_interval', 3000);
   const [simulationActive, setSimulationActive] = useState(true);
   const [boards, setBoards] = useLocalStorage<Record<string, Board>>('stock_boards', {});
+  const [boardOrder, setBoardOrder] = useLocalStorage<string[]>('stock_board_order', []);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [modal, setModal] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
   const [lastUpdateTime, setLastUpdateTime] = useState<string>('');
   const [apiStatus, setApiStatus] = useState<'fetching' | 'ok' | 'unavailable'>('fetching');
   const toast = useToast(setToasts);
+
+  // 同步 boardOrder 和 boards（新增板块自动加入末尾，删除的自动移除）
+  useEffect(() => {
+    setBoardOrder((prev) => {
+      const boardIds = new Set(Object.keys(boards));
+      const filtered = prev.filter((id) => boardIds.has(id));
+      // 新增的板块（不在 order 中）追加到末尾
+      for (const id of boardIds) {
+        if (!filtered.includes(id)) filtered.push(id);
+      }
+      return filtered;
+    });
+  }, [boards, setBoardOrder]);
 
   // Drag state — stocks
   const stockDragRef = useRef<{ stockId: string; boardId: string } | null>(null);
@@ -195,6 +210,44 @@ export default function App() {
     moveStock(data.stockId, data.boardId, boardId, targetStockId);
   }, [moveStock]);
 
+  // === BOARD DRAG & DROP（拖拽重排） ===
+  const boardDragRef = useRef<{ boardId: string } | null>(null);
+
+  const handleBoardDragStart = useCallback((e: React.DragEvent, boardId: string) => {
+    boardDragRef.current = { boardId };
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'board', boardId }));
+    // 让拖拽时鼠标显示为移动图标
+    if (e.dataTransfer.setDragImage) {
+      const el = e.currentTarget as HTMLElement;
+      e.dataTransfer.setDragImage(el, el.offsetWidth / 2, 20);
+    }
+  }, []);
+
+  const handleBoardDropOnReorder = useCallback((e: React.DragEvent, targetBoardId: string) => {
+    e.preventDefault();
+    const data = boardDragRef.current;
+    if (!data) return;
+    boardDragRef.current = null;
+    if (data.boardId === targetBoardId) return;
+
+    setBoardOrder((prev) => {
+      const fromIdx = prev.indexOf(data.boardId);
+      const toIdx = prev.indexOf(targetBoardId);
+      if (fromIdx === -1 || toIdx === -1) return prev;
+      const arr = [...prev];
+      arr.splice(fromIdx, 1);
+      arr.splice(toIdx, 0, data.boardId);
+      return arr;
+    });
+    toast('板块已排序', 'info');
+  }, [setBoardOrder, toast]);
+
+  const handleBoardDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  }, []);
+
   // === RESET ===
   const handleRefreshPrices = useCallback(() => {
     refreshPrices();
@@ -221,6 +274,7 @@ export default function App() {
       <div className={styles.mainContent}>
         <SectionGroup
           boards={boards}
+          boardOrder={boardOrder}
           draggingStockId={draggingStockId}
           onRenameBoard={renameBoard}
           onDeleteBoard={deleteBoard}
@@ -231,6 +285,9 @@ export default function App() {
           onDragOverStock={handleDragOverStock}
           onDropOnBoard={handleDropOnBoard}
           onDropOnStock={handleDropOnStock}
+          onBoardDragStart={handleBoardDragStart}
+          onBoardDropOnReorder={handleBoardDropOnReorder}
+          onBoardDragOver={handleBoardDragOver}
         />
       </div>
       <ToastContainer toasts={toasts} />

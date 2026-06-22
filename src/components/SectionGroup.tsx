@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styles from './SectionGroup.module.css';
 import BoardCard from './BoardCard';
 import type { Board, Stock } from '../types';
 
 interface Props {
   boards: Record<string, Board>;
+  boardOrder: string[];
   draggingStockId: string | null;
   onRenameBoard: (boardId: string, title: string) => void;
   onDeleteBoard: (boardId: string) => void;
@@ -15,10 +16,14 @@ interface Props {
   onDragOverStock: (e: React.DragEvent, stockId: string, boardId: string) => void;
   onDropOnBoard: (e: React.DragEvent, boardId: string) => void;
   onDropOnStock: (e: React.DragEvent, targetStockId: string, boardId: string) => void;
+  onBoardDragStart: (e: React.DragEvent, boardId: string) => void;
+  onBoardDropOnReorder: (e: React.DragEvent, targetBoardId: string) => void;
+  onBoardDragOver: (e: React.DragEvent) => void;
 }
 
 export default function SectionGroup({
   boards,
+  boardOrder,
   draggingStockId,
   onRenameBoard,
   onDeleteBoard,
@@ -29,27 +34,42 @@ export default function SectionGroup({
   onDragOverStock,
   onDropOnBoard,
   onDropOnStock,
+  onBoardDragStart,
+  onBoardDropOnReorder,
+  onBoardDragOver,
 }: Props) {
-  const boardList = Object.values(boards);
+  const [dragOverBoardId, setDragOverBoardId] = useState<string | null>(null);
 
   return (
     <div className={styles.boardsGrid}>
-      {boardList.map((board) => (
-        <BoardCard
-          key={board.id}
-          board={board}
-          draggingStockId={draggingStockId}
-          onRename={onRenameBoard}
-          onDelete={onDeleteBoard}
-          onAddStock={onAddStock}
-          onDeleteStock={onDeleteStock}
-          onDragStart={onDragStart}
-          onDragOverBoard={onDragOverBoard}
-          onDragOverStock={onDragOverStock}
-          onDropOnBoard={onDropOnBoard}
-          onDropOnStock={onDropOnStock}
-        />
-      ))}
+      {boardOrder.map((bid) => {
+        const board = boards[bid];
+        if (!board) return null;
+        return (
+          <div
+            key={bid}
+            className={`${styles.boardWrapper} ${dragOverBoardId === bid ? styles.boardDropTarget : ''}`}
+            onDragOver={(e) => { onBoardDragOver(e); setDragOverBoardId(bid); }}
+            onDragLeave={() => setDragOverBoardId(null)}
+            onDrop={(e) => { setDragOverBoardId(null); onBoardDropOnReorder(e, bid); }}
+          >
+            <BoardCard
+              board={board}
+              draggingStockId={draggingStockId}
+              onRename={onRenameBoard}
+              onDelete={onDeleteBoard}
+              onAddStock={onAddStock}
+              onDeleteStock={onDeleteStock}
+              onDragStart={onDragStart}
+              onDragOverBoard={onDragOverBoard}
+              onDragOverStock={onDragOverStock}
+              onDropOnBoard={onDropOnBoard}
+              onDropOnStock={onDropOnStock}
+              onBoardDragStart={onBoardDragStart}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
