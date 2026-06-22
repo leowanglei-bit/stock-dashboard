@@ -9,12 +9,7 @@ import { useRealtimePrices } from './hooks/useRealtimePrices';
 import { useToast } from './hooks/useToast';
 import { genId, entryToStock } from './data/utils';
 import { STOCK_DATABASE } from './data/mockStocks';
-import type { Section, Board, Stock, ThemeMode, ColorMode, ToastItem } from './types';
-
-const INITIAL_SECTIONS: Section[] = [
-  { id: 'sec-1', title: '科技成长', boards: [], collapsed: false },
-  { id: 'sec-2', title: '核心资产', boards: [], collapsed: false },
-];
+import type { Board, Stock, ThemeMode, ColorMode, ToastItem } from './types';
 
 function createInitialBoard(title: string, stockNames: string[]): Board {
   const stocks: Stock[] = stockNames
@@ -37,14 +32,11 @@ const INITIAL_BOARDS: Record<string, Board> = {
   'brd-init-3': createInitialBoard('AI 概念', ['科大讯飞', '中科曙光', '金山办公', '昆仑万维']),
 };
 
-// Section-board assignments are applied via INITIAL_BOARDS + sections above
-
 export default function App() {
   const [theme, setTheme] = useLocalStorage<ThemeMode>('stock_theme_mode', 'dark');
   const [colorMode, setColorMode] = useLocalStorage<ColorMode>('stock_color_mode', 'cn');
   const [intervalMs, setIntervalMs] = useLocalStorage('stock_interval', 3000);
   const [simulationActive, setSimulationActive] = useState(true);
-  const [sections, setSections] = useLocalStorage<Section[]>('stock_sections', INITIAL_SECTIONS);
   const [boards, setBoards] = useLocalStorage<Record<string, Board>>('stock_boards', INITIAL_BOARDS);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [modal, setModal] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
@@ -55,10 +47,6 @@ export default function App() {
   // Drag state — stocks
   const stockDragRef = useRef<{ stockId: string; boardId: string } | null>(null);
   const [draggingStockId, setDraggingStockId] = useState<string | null>(null);
-
-  // Drag state — boards (move between sections)
-  const boardDragRef = useRef<string | null>(null);
-  const [_draggingBoardId, setDraggingBoardId] = useState<string | null>(null);
 
   // Apply theme
   useEffect(() => {
@@ -117,18 +105,11 @@ export default function App() {
           delete next[boardId];
           return next;
         });
-        // Remove from sections
-        setSections((prev) =>
-          prev.map((s) => ({
-            ...s,
-            boards: s.boards.filter((bid) => bid !== boardId),
-          }))
-        );
         setModal(null);
         toast('板块已删除', 'info');
       },
     });
-  }, [setBoards, setSections, toast]);
+  }, [setBoards, toast]);
 
   // === STOCK OPERATIONS ===
   const addStock = useCallback((boardId: string, stock: Stock) => {
@@ -186,24 +167,16 @@ export default function App() {
 
       if (fromBoardId === toBoardId) {
         const without = fromBoard.stocks.filter((s) => s.id !== stockId);
-        if (!targetStockId) {
-          newToStocks = [...without, stock];
-        } else {
-          const idx = without.findIndex((s) => s.id === targetStockId);
-          const arr = [...without];
-          arr.splice(idx >= 0 ? idx : arr.length, 0, stock);
-          newToStocks = arr;
-        }
+        const idx = targetStockId ? without.findIndex((s) => s.id === targetStockId) : -1;
+        const arr = [...without];
+        arr.splice(idx >= 0 ? idx : arr.length, 0, stock);
+        newToStocks = arr;
         return { ...prev, [toBoardId]: { ...toBoard, stocks: newToStocks } };
       } else {
-        if (!targetStockId) {
-          newToStocks = [...toBoard.stocks, stock];
-        } else {
-          const idx = toBoard.stocks.findIndex((s) => s.id === targetStockId);
-          const arr = [...toBoard.stocks];
-          arr.splice(idx >= 0 ? idx : arr.length, 0, stock);
-          newToStocks = arr;
-        }
+        const idx = targetStockId ? toBoard.stocks.findIndex((s) => s.id === targetStockId) : -1;
+        const arr = [...toBoard.stocks];
+        arr.splice(idx >= 0 ? idx : arr.length, 0, stock);
+        newToStocks = arr;
         return { ...prev, [fromBoardId]: newFrom, [toBoardId]: { ...toBoard, stocks: newToStocks } };
       }
     });
@@ -230,101 +203,18 @@ export default function App() {
     moveStock(data.stockId, data.boardId, boardId, targetStockId);
   }, [moveStock]);
 
-  // === BOARD DRAG & DROP (between sections) ===
-  const handleBoardDragStart = useCallback((e: React.DragEvent, boardId: string) => {
-    boardDragRef.current = boardId;
-    setDraggingBoardId(boardId);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'board', boardId }));
-  }, []);
-
-  const moveBoardToSection = useCallback((boardId: string, targetSectionId: string | null) => {
-    setSections((prev) => {
-      return prev.map((s) => {
-        // If this is the target section, add the board if not already there
-        if (s.id === targetSectionId) {
-          if (s.boards.includes(boardId)) return s;
-          return { ...s, boards: [...s.boards, boardId] };
-        }
-        // Remove from all other sections (moving to a section = remove from others)
-        if (s.boards.includes(boardId)) {
-          return { ...s, boards: s.boards.filter((bid) => bid !== boardId) };
-        }
-        return s;
-      });
-    });
-    toast('已移动板块', 'info');
-  }, [setSections, toast]);
-
-  const handleBoardDropOnSection = useCallback((e: React.DragEvent, sectionId: string) => {
-    e.preventDefault();
-    setDraggingBoardId(null);
-    const bid = boardDragRef.current;
-    if (!bid) return;
-    boardDragRef.current = null;
-    moveBoardToSection(bid, sectionId);
-  }, [moveBoardToSection]);
-
-  const handleBoardDropOnUngrouped = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setDraggingBoardId(null);
-    const bid = boardDragRef.current;
-    if (!bid) return;
-    boardDragRef.current = null;
-    // Remove board from all sections → it becomes ungrouped
-    setSections((prev) =>
-      prev.map((s) => ({
-        ...s,
-        boards: s.boards.filter((b) => b !== bid),
-      }))
-    );
-    toast('已移出分组', 'info');
-  }, [setSections, toast]);
-
-  // === SECTION OPERATIONS ===
-  const addSection = useCallback(() => {
-    const id = genId('sec');
-    setSections((prev) => [...prev, { id, title: `新分组 ${prev.length + 1}`, boards: [], collapsed: false }]);
-    toast('已创建新分组', 'success');
-  }, [setSections, toast]);
-
-  const renameSection = useCallback((sectionId: string, title: string) => {
-    setSections((prev) =>
-      prev.map((s) => (s.id === sectionId ? { ...s, title } : s))
-    );
-  }, [setSections]);
-
-  const deleteSection = useCallback((sectionId: string) => {
-    setModal({
-      title: '删除分组',
-      message: '确定要删除这个分组吗？分组内的板块将变为未分组状态。',
-      onConfirm: () => {
-        setSections((prev) => prev.filter((s) => s.id !== sectionId));
-        setModal(null);
-        toast('分组已删除', 'info');
-      },
-    });
-  }, [setSections, toast]);
-
-  const toggleCollapse = useCallback((sectionId: string) => {
-    setSections((prev) =>
-      prev.map((s) => (s.id === sectionId ? { ...s, collapsed: !s.collapsed } : s))
-    );
-  }, [setSections]);
-
   // === RESET ===
   const resetAll = useCallback(() => {
     setModal({
       title: '重置所有数据',
-      message: '确定要重置所有数据吗？所有板块、股票和分组信息将被清空，恢复为默认初始状态。',
+      message: '确定要重置所有数据吗？所有板块和股票信息将被清空，恢复为默认初始状态。',
       onConfirm: () => {
-        setSections(INITIAL_SECTIONS);
         setBoards(INITIAL_BOARDS);
         setModal(null);
         toast('已重置为默认状态', 'info');
       },
     });
-  }, [setSections, setBoards, toast]);
+  }, [setBoards, toast]);
 
   return (
     <div className={styles.appContainer}>
@@ -345,12 +235,8 @@ export default function App() {
       />
       <div className={styles.mainContent}>
         <SectionGroup
-          sections={sections}
           boards={boards}
           draggingStockId={draggingStockId}
-          onRenameSection={renameSection}
-          onDeleteSection={deleteSection}
-          onToggleCollapse={toggleCollapse}
           onRenameBoard={renameBoard}
           onDeleteBoard={deleteBoard}
           onAddStock={addStock}
@@ -360,10 +246,6 @@ export default function App() {
           onDragOverStock={handleDragOverStock}
           onDropOnBoard={handleDropOnBoard}
           onDropOnStock={handleDropOnStock}
-          onBoardDragStart={handleBoardDragStart}
-          onBoardDropOnSection={handleBoardDropOnSection}
-          onBoardDropOnUngrouped={handleBoardDropOnUngrouped}
-          onAddSection={addSection}
         />
       </div>
       <ToastContainer toasts={toasts} />

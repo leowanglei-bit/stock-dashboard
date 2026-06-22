@@ -16,13 +16,6 @@ export interface Board {
   stocks: Stock[];
 }
 
-export interface Section {
-  id: string;
-  title: string;
-  boards: string[]; // board IDs
-  collapsed: boolean;
-}
-
 export type ColorMode = 'cn' | 'us';
 
 export type ThemeMode = 'dark' | 'light';
@@ -31,11 +24,4 @@ export interface ToastItem {
   id: string;
   message: string;
   type: 'success' | 'error' | 'info';
-}
-
-export interface AppData {
-  version: number;
-  sections: Section[];
-  boards: Record<string, Board>;
-  colorMode: ColorMode;
 }

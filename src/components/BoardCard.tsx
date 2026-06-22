@@ -16,7 +16,6 @@ interface BoardCardProps {
   onDropOnBoard: (e: React.DragEvent, boardId: string) => void;
   onDropOnStock: (e: React.DragEvent, targetStockId: string, boardId: string) => void;
   draggingStockId: string | null;
-  onBoardDragStart?: (e: React.DragEvent, boardId: string) => void;
 }
 
 export default function BoardCard({
@@ -31,7 +30,6 @@ export default function BoardCard({
   onDropOnBoard,
   onDropOnStock,
   draggingStockId,
-  onBoardDragStart,
 }: BoardCardProps) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(board.title);
@@ -54,13 +52,8 @@ export default function BoardCard({
       onDragOver={(e) => onDragOverBoard(e, board.id)}
       onDrop={(e) => onDropOnBoard(e, board.id)}
     >
-      {/* Header — draggable to move between sections */}
-      <div
-        className={styles.header}
-        draggable={!!onBoardDragStart}
-        onDragStart={(e) => onBoardDragStart?.(e, board.id)}
-        style={{ cursor: onBoardDragStart ? 'grab' : undefined }}
-      >
+      {/* Header */}
+      <div className={styles.header}>
         <div className={styles.titleWrapper}>
           {editing ? (
             <input
