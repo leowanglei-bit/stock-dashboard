@@ -36,10 +36,15 @@ export default function BoardCard({
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(board.title);
   const [showForm, setShowForm] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   const avgChange = board.stocks.length > 0
     ? board.stocks.reduce((s, st) => s + st.changePercent, 0) / board.stocks.length
     : 0;
+
+  // 涨跌加数
+  const riseCount = board.stocks.filter((s) => s.changePercent > 0).length;
+  const fallCount = board.stocks.filter((s) => s.changePercent < 0).length;
 
   const handleRename = () => {
     if (editValue.trim() && editValue !== board.title) {
@@ -54,13 +59,27 @@ export default function BoardCard({
       onDragOver={(e) => onDragOverBoard(e, board.id)}
       onDrop={(e) => onDropOnBoard(e, board.id)}
     >
-      {/* Header — 长按/拖拽重排板块顺序 */}
+      {/* Header */}
       <div
         className={styles.header}
         draggable
         onDragStart={(e) => onBoardDragStart?.(e, board.id)}
       >
         <div className={styles.titleWrapper}>
+          {/* 折叠按钮 */}
+          <button
+            className={styles.collapseBtn}
+            onClick={() => setCollapsed(!collapsed)}
+            title={collapsed ? '展开' : '折叠'}
+          >
+            <svg
+              width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              style={{ transform: collapsed ? 'rotate(-90deg)' : 'rotate(0)', transition: 'transform 0.2s' }}
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+          {/* 标题 */}
           {editing ? (
             <input
               className={styles.titleInput}
@@ -78,15 +97,24 @@ export default function BoardCard({
         </div>
         <div className={styles.headerRight}>
           {board.stocks.length > 0 && (
-            <span
-              className={styles.avgChange}
-              style={{
-                color: avgChange >= 0 ? 'var(--rise-color)' : 'var(--fall-color)',
-                backgroundColor: avgChange >= 0 ? 'var(--rise-bg)' : 'var(--fall-bg)',
-              }}
-            >
-              {avgChange >= 0 ? '+' : ''}{avgChange.toFixed(2)}%
-            </span>
+            <>
+              {/* 涨跌加数比例: 上涨数:下跌数 */}
+              <span className={styles.ratioBadge}>
+                <span className={styles.ratioRise}>{riseCount}</span>
+                <span className={styles.ratioSep}>:</span>
+                <span className={styles.ratioFall}>{fallCount}</span>
+              </span>
+              {/* 板块均涨幅 */}
+              <span
+                className={styles.avgChange}
+                style={{
+                  color: avgChange >= 0 ? 'var(--rise-color)' : 'var(--fall-color)',
+                  backgroundColor: avgChange >= 0 ? 'var(--rise-bg)' : 'var(--fall-bg)',
+                }}
+              >
+                {avgChange >= 0 ? '+' : ''}{avgChange.toFixed(2)}%
+              </span>
+            </>
           )}
           <button className={styles.actionBtn} onClick={() => onDelete(board.id)} title="删除板块">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -97,47 +125,50 @@ export default function BoardCard({
         </div>
       </div>
 
-      {/* Stock List */}
-      <div className={styles.stockList}>
-        {board.stocks.length === 0 ? (
-          <div className={styles.emptyHint}>暂无股票，点击下方添加</div>
-        ) : (
-          board.stocks
-            .slice() // 不修改原数组
-            .sort((a, b) => b.changePercent - a.changePercent)
-            .map((stock) => (
-            <StockRow
-              key={stock.id}
-              stock={stock}
+      {/* Stock List — 折叠时隐藏 */}
+      {!collapsed && (
+        <>
+          <div className={styles.stockList}>
+            {board.stocks.length === 0 ? (
+              <div className={styles.emptyHint}>暂无股票，点击下方添加</div>
+            ) : (
+              board.stocks
+                .slice()
+                .sort((a, b) => b.changePercent - a.changePercent)
+                .map((stock) => (
+                <StockRow
+                  key={stock.id}
+                  stock={stock}
+                  boardId={board.id}
+                  isDragging={draggingStockId === stock.id}
+                  onDragStart={onDragStart}
+                  onDragOver={onDragOverStock}
+                  onDrop={onDropOnStock}
+                  onDelete={(stockId) => onDeleteStock(board.id, stockId)}
+                />
+              ))
+            )}
+          </div>
+
+          <button className={styles.toggleForm} onClick={() => setShowForm(!showForm)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              {showForm ? (
+                <><path d="M5 12h14" /></>
+              ) : (
+                <><path d="M5 12h14" /><path d="M12 5v14" /></>
+              )}
+            </svg>
+            {showForm ? '收起' : '添加股票'}
+          </button>
+
+          {showForm && (
+            <AddStockForm
               boardId={board.id}
-              isDragging={draggingStockId === stock.id}
-              onDragStart={onDragStart}
-              onDragOver={onDragOverStock}
-              onDrop={onDropOnStock}
-              onDelete={(stockId) => onDeleteStock(board.id, stockId)}
+              onAddStock={onAddStock}
+              onClose={() => setShowForm(false)}
             />
-          ))
-        )}
-      </div>
-
-      {/* Add Stock Toggle */}
-      <button className={styles.toggleForm} onClick={() => setShowForm(!showForm)}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          {showForm ? (
-            <><path d="M5 12h14" /></>
-          ) : (
-            <><path d="M5 12h14" /><path d="M12 5v14" /></>
           )}
-        </svg>
-        {showForm ? '收起' : '添加股票'}
-      </button>
-
-      {showForm && (
-        <AddStockForm
-          boardId={board.id}
-          onAddStock={onAddStock}
-          onClose={() => setShowForm(false)}
-        />
+        </>
       )}
     </div>
   );

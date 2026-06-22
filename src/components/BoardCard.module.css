@@ -23,7 +23,27 @@
   border-bottom: 1px solid var(--border-color);
 }
 
-.titleWrapper { flex: 1; display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+.titleWrapper { flex: 1; display: flex; align-items: center; gap: 0.35rem; min-width: 0; }
+
+.collapseBtn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+  margin-left: -4px;
+}
+.collapseBtn:hover {
+  color: var(--text-bright);
+  background: var(--row-hover-bg);
+}
 
 .title {
   font-size: 1.05rem;
@@ -65,6 +85,23 @@
   padding: 0.15rem 0.4rem;
   border-radius: 4px;
 }
+
+/* 涨跌加数比例 x:y */
+.ratioBadge {
+  font-family: monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 0.15rem 0.3rem;
+  border-radius: 4px;
+  background: var(--row-bg);
+  border: 1px solid var(--border-color);
+}
+.ratioRise { color: var(--rise-color); }
+.ratioFall { color: var(--fall-color); }
+.ratioSep { color: var(--text-dim); font-size: 0.7rem; }
 
 .actionBtn {
   color: var(--text-dim);
