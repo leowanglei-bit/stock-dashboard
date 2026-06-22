@@ -102,7 +102,10 @@ export default function BoardCard({
         {board.stocks.length === 0 ? (
           <div className={styles.emptyHint}>暂无股票，点击下方添加</div>
         ) : (
-          board.stocks.map((stock) => (
+          board.stocks
+            .slice() // 不修改原数组
+            .sort((a, b) => b.changePercent - a.changePercent)
+            .map((stock) => (
             <StockRow
               key={stock.id}
               stock={stock}
