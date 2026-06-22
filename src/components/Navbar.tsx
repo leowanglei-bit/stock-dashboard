@@ -52,7 +52,7 @@ export default function Navbar({
               <path d="M8 17v-3" />
             </svg>
           </span>
-          <span>智股看板</span>
+          <span>灵犀茶馆</span>
         </div>
         <div className={styles.status}>
           <span
