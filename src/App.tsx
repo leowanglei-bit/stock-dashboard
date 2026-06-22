@@ -11,7 +11,17 @@ import { genId } from './data/utils';
 import { tryRefreshStockDB } from './data/stockSearchDb';
 import type { Board, Stock, ThemeMode, ColorMode, ToastItem } from './types';
 
+// 数据版本 — 每次重大变更时递增，自动重置旧缓存
+const DATA_VERSION = 'v2';
+const VERSION_KEY = 'stock_data_version';
+
 export default function App() {
+  // 检查版本，不一致则清除旧数据
+  if (localStorage.getItem(VERSION_KEY) !== DATA_VERSION) {
+    localStorage.removeItem('stock_boards');
+    localStorage.setItem(VERSION_KEY, DATA_VERSION);
+  }
+
   const [theme, setTheme] = useLocalStorage<ThemeMode>('stock_theme_mode', 'dark');
   const [colorMode, setColorMode] = useLocalStorage<ColorMode>('stock_color_mode', 'cn');
   const [intervalMs, setIntervalMs] = useLocalStorage('stock_interval', 3000);
