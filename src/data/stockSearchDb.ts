@@ -1,6 +1,6 @@
 /**
  * A 股股票数据库
- * 冷启动时使用内置列表，后台尝试从新浪 API 拉取全量数据并缓存到 localStorage
+ * 冷启动时使用内置列表，后台使用新浪市场中心 API 拉取全量数据并缓存到 localStorage
  */
 
 export interface StockSearchItem {
@@ -11,7 +11,6 @@ export interface StockSearchItem {
 
 // ───── 内置精简版（冷启动用，覆盖 95% 常见交易股票） ─────
 const BUILT_IN: [string, string, number][] = [
-  // 银行 (28)
   ['600000','浦发银行',0],['600015','华夏银行',0],['600016','民生银行',0],['600036','招商银行',0],
   ['600908','无锡银行',0],['600919','江苏银行',0],['600926','杭州银行',0],['601009','南京银行',0],
   ['601128','常熟银行',0],['601166','兴业银行',0],['601169','北京银行',0],['601229','上海银行',0],
@@ -19,77 +18,13 @@ const BUILT_IN: [string, string, number][] = [
   ['601577','长沙银行',0],['601838','成都银行',0],['601860','紫金银行',0],['601939','建设银行',0],
   ['601963','重庆银行',0],['601988','中国银行',0],['601997','贵阳银行',0],['002142','宁波银行',1],
   ['002807','江阴银行',1],['002839','张家港行',1],['002936','郑州银行',1],['002948','青岛银行',1],
-  // 保险/券商 (20)
-  ['600030','中信证券',0],['600061','国投资本',0],['600837','海通证券',0],['600958','东方证券',0],
-  ['600999','招商证券',0],['601066','中信建投',0],['601198','东兴证券',0],['601211','国泰君安',0],
-  ['601236','红塔证券',0],['601318','中国平安',0],['601336','新华保险',0],['601375','中原证券',0],
-  ['601555','东吴证券',0],['601601','中国太保',0],['601628','中国人寿',0],['601688','华泰证券',0],
-  ['601878','浙商证券',0],['000776','广发证券',1],['002797','第一创业',1],['300059','东方财富',2],
-  // 地产/基建 (10)
-  ['600048','保利发展',0],['600340','华夏幸福',0],['600383','金地集团',0],['600585','海螺水泥',0],
-  ['601186','中国铁建',0],['601390','中国中铁',0],['601668','中国建筑',0],['000002','万科A',1],
-  ['001979','招商蛇口',1],['600325','华发股份',0],
-  // 白酒/消费 (18)
-  ['600519','贵州茅台',0],['600559','老白干酒',0],['600600','青岛啤酒',0],['600690','海尔智家',0],
-  ['600809','山西汾酒',0],['600887','伊利股份',0],['603288','海天味业',0],['603369','今世缘',0],
-  ['603589','口子窖',0],['000333','美的集团',1],['000568','泸州老窖',1],['000596','古井贡酒',1],
-  ['000651','格力电器',1],['000858','五粮液',1],['002032','苏泊尔',1],['002304','洋河股份',1],
-  ['002557','洽洽食品',1],['002714','牧原股份',1],
-  // 医药 (14)
-  ['600085','同仁堂',0],['600196','复星医药',0],['600276','恒瑞医药',0],['600763','通策医疗',0],
-  ['603259','药明康德',0],['000423','东阿阿胶',1],['000538','云南白药',1],['002007','华兰生物',1],
-  ['300003','乐普医疗',2],['300015','爱尔眼科',2],['300122','智飞生物',2],['300347','泰格医药',2],
-  ['300760','迈瑞医疗',2],['300529','健帆生物',2],
-  // 科技/通信/电子 (18)
-  ['600050','中国联通',0],['600487','亨通光电',0],['600703','三安光电',0],['600941','中国移动',0],
-  ['601138','工业富联',0],['601728','中国电信',0],['603236','移远通信',0],['603019','中科曙光',0],
-  ['000063','中兴通讯',1],['002230','科大讯飞',1],['002241','歌尔股份',1],['002415','海康威视',1],
-  ['002475','立讯精密',1],['300033','同花顺',2],['300308','中际旭创',2],['300394','天孚通信',2],
-  ['300502','新易盛',2],['301205','联特科技',2],
-  // 半导体/芯片 (16)
-  ['600584','长电科技',0],['603501','韦尔股份',0],['603986','兆易创新',0],['002049','紫光国微',1],
-  ['002371','北方华创',1],['002185','华天科技',1],['300661','圣邦股份',2],['300782','卓胜微',2],
-  ['300672','国科微',2],['688008','澜起科技',3],['688012','中微公司',3],['688111','金山办公',3],
-  ['688256','寒武纪',3],['688981','中芯国际',3],['688396','华润微',3],['688126','沪硅产业',3],
-  // 新能源/汽车 (16)
-  ['600104','上汽集团',0],['600438','通威股份',0],['601012','隆基绿能',0],['601238','广汽集团',0],
-  ['601689','拓普集团',0],['000625','长安汽车',1],['002460','赣锋锂业',1],['002466','天齐锂业',1],
-  ['002594','比亚迪',1],['300014','亿纬锂能',2],['300274','阳光电源',2],['300750','宁德时代',2],
-  ['300763','锦浪科技',2],['688005','容百科技',3],['688599','天合光能',3],['688223','晶科能源',3],
-  // 公用事业/能源 (10)
-  ['600011','华能国际',0],['600028','中国石化',0],['600886','国投电力',0],['600900','长江电力',0],
-  ['601857','中国石油',0],['601985','中国核电',0],['600795','国电电力',0],['600023','浙能电力',0],
-  ['000591','太阳能',1],['600025','华能水电',0],
-  // 医药商业/零售 (10)
-  ['601607','上海医药',0],['600511','国药股份',0],['000028','国药一致',1],['603233','大参林',0],
-  ['002727','一心堂',1],['603883','老百姓',0],['600998','九州通',0],['300015','爱尔眼科',2],
-  ['300896','爱美客',2],['688180','君实生物',3],
-  // AI 概念 (10)
-  ['300418','昆仑万维',2],['300624','万兴科技',2],['002602','世纪华通',1],['002555','三七互娱',1],
-  ['300315','掌趣科技',2],['603444','吉比特',0],['002174','游族网络',1],['300033','同花顺',2],
-  ['688327','云从科技',3],['688343','云天励飞',3],
-  // 军工 (8)
-  ['600760','中航沈飞',0],['600893','航发动力',0],['000768','中航西飞',1],['002179','中航光电',1],
-  ['600862','中航高科',0],['601989','中国重工',0],['600150','中国船舶',0],['600685','中船防务',0],
-  // 交通运输 (8)
-  ['601006','大秦铁路',0],['601111','中国国航',0],['600029','南方航空',0],['600115','中国东航',0],
-  ['601919','中远海控',0],['002352','顺丰控股',1],['600233','圆通速递',0],['002120','韵达股份',1],
-  // 化工/有色 (12)
-  ['600309','万华化学',0],['601899','紫金矿业',0],['000630','铜陵有色',1],['000831','五矿稀土',1],
-  ['002466','天齐锂业',1],['600547','山东黄金',0],['600111','北方稀土',0],['600585','海螺水泥',0],
-  ['600019','宝钢股份',0],['000932','华菱钢铁',1],['600516','方大炭素',0],['601600','中国铝业',0],
-  // 机械设备 (8)
-  ['600031','三一重工',0],['000157','中联重科',1],['002353','杰瑞股份',1],['300124','汇川技术',2],
-  ['002747','埃斯顿',1],['300607','拓斯达',2],['688160','步科股份',3],['688017','绿的谐波',3],
-  // 农业 (6)
-  ['600598','北大荒',0],['000998','隆平高科',1],['002041','登海种业',1],['300087','荃银高科',2],
-  ['002714','牧原股份',1],['002458','益生股份',1],
-  // 教育/传媒 (6)
-  ['600880','博瑞传播',0],['300251','光线传媒',2],['002739','万达电影',1],['300413','芒果超媒',2],
-  ['000156','华数传媒',1],['600637','东方明珠',0],
+  ['600030','中信证券',0],['601318','中国平安',0],['600519','贵州茅台',0],['000858','五粮液',1],
+  ['000333','美的集团',1],['300750','宁德时代',2],['002594','比亚迪',1],['688981','中芯国际',3],
+  ['600941','中国移动',0],['300059','东方财富',2],['002230','科大讯飞',1],['300308','中际旭创',2],
+  ['600036','招商银行',0],['600900','长江电力',0],['601857','中国石油',0],['600028','中国石化',0],
 ];
 
-const MARKET_MAP: Record<number, StockSearchItem['market']> = { 0: 'sh', 1: 'sz', 2: 'chinext', 3: 'star', };
+const MARKET_MAP: Record<number, StockSearchItem['market']> = { 0: 'sh', 1: 'sz', 2: 'chinext', 3: 'star' };
 const BUILT_IN_DB: StockSearchItem[] = BUILT_IN.map(([code, name, m]) => ({ code, name, market: MARKET_MAP[m] }));
 
 // ───── 缓存管理 ─────
@@ -105,79 +40,96 @@ function loadCache(): StockSearchItem[] | null {
   } catch { return null; }
 }
 
-function saveCache(data: StockSearchItem[]) {
+export function saveCache(data: StockSearchItem[]) {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(data));
     localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
   } catch { /* quota */ }
 }
 
-/** 检查是否到每周更新时间 */
 function shouldRefresh(): boolean {
   try {
     const last = localStorage.getItem(CACHE_TIME_KEY);
     if (!last) return true;
-    const elapsed = Date.now() - parseInt(last, 10);
-    return elapsed > 7 * 24 * 60 * 60 * 1000; // 7 天
+    return Date.now() - parseInt(last, 10) > 7 * 24 * 60 * 60 * 1000;
   } catch { return true; }
 }
 
 // ───── API 获取全量股票（新浪市场中心） ─────
-async function fetchAllStocksFromAPI(): Promise<StockSearchItem[] | null> {
-  // 逐页拉取沪深 A 股
+// 每个市场节点每页 100 只，先取第一页获取 total 再算页数
+const MARKET_NODES: { node: string; market: StockSearchItem['market'] }[] = [
+  { node: 'sh_a', market: 'sh' },     // 沪市主板 ~1500
+  { node: 'sz_a', market: 'sz' },     // 深市主板 ~1500
+  { node: 'cyb', market: 'chinext' },  // 创业板 ~1300
+  { node: 'kcb', market: 'star' },     // 科创板 ~560
+  { node: 'bse', market: 'bse' },      // 北交所 ~200
+];
+
+async function fetchNodeMarket(node: string, market: StockSearchItem['market']): Promise<StockSearchItem[]> {
   const results: StockSearchItem[] = [];
-  const pages = [
-    { node: 'hs_a', total: 5000 },  // 沪深 A 股
-  ];
+  // 先取第一页拿总数
+  const firstUrl = `https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeData?page=1&num=100&sort=symbol&asc=1&node=${node}&_s_r_a=init`;
+  const firstRes = await fetch(firstUrl, {
+    headers: { Referer: 'https://finance.sina.com.cn' },
+    signal: AbortSignal.timeout(10000),
+  });
+  const firstText = await firstRes.text();
+  let firstData: any[];
+  try { firstData = JSON.parse(firstText); } catch { return []; }
+  if (!Array.isArray(firstData) || firstData.length === 0) return [];
 
-  for (const { node, total } of pages) {
-    const pageSize = 1000;
-    const pageCount = Math.ceil(total / pageSize);
-
-    for (let page = 1; page <= pageCount; page++) {
-      const url = `https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeData?page=${page}&num=${pageSize}&sort=symbol&asc=1&node=${node}&symbol=&_s_r_a=init`;
-      try {
-        const res = await fetch(url, {
-          headers: { Referer: 'https://finance.sina.com.cn' },
-          signal: AbortSignal.timeout(10000),
-        });
-        const text = await res.text();
-        // 解析 JSON: [{"symbol":"sh600000","code":"600000","name":"浦发银行",...},...]
-        const items = JSON.parse(text) as { symbol?: string; code: string; name: string }[];
-        for (const item of items) {
-          const sym = item.symbol || '';
-          const code = item.code;
-          let market: StockSearchItem['market'] = 'sz';
-          if (sym.startsWith('sh')) {
-            market = code.startsWith('688') ? 'star' : 'sh';
-          } else if (sym.startsWith('sz')) {
-            market = code.startsWith('30') ? 'chinext' : code.startsWith('8') ? 'bse' : 'sz';
-          } else if (sym.startsWith('bj')) {
-            market = 'bse';
-          }
-          results.push({ code, name: item.name, market });
-        }
-      } catch { continue; }
+  // 从第一页数据中获取 total（如果有的话），或者假设分页
+  // 实际 API 不返回 total，我们通过 num * 5 估算
+  firstData.forEach((item: any) => {
+    const code = item.code;
+    if (code) {
+      results.push({ code: code.toString(), name: item.name || '', market });
     }
+  });
+
+  // 尝试更多页面（每页 100，最多 25 页覆盖 2500 只）
+  for (let page = 2; page <= 25; page++) {
+    const url = `https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeData?page=${page}&num=100&sort=symbol&asc=1&node=${node}&_s_r_a=init`;
+    try {
+      const res = await fetch(url, {
+        headers: { Referer: 'https://finance.sina.com.cn' },
+        signal: AbortSignal.timeout(8000),
+      });
+      const text = await res.text();
+      const data = JSON.parse(text);
+      if (!Array.isArray(data) || data.length === 0) break; // 无更多数据
+      data.forEach((item: any) => {
+        const code = item.code;
+        if (code) results.push({ code: code.toString(), name: item.name || '', market });
+      });
+      if (data.length < 100) break; // 最后一页
+    } catch { break; }
   }
 
-  return results.length > 100 ? results : null;
+  return results;
+}
+
+export async function fetchAllStocksFromAPI(): Promise<StockSearchItem[]> {
+  const all: StockSearchItem[] = [];
+  for (const { node, market } of MARKET_NODES) {
+    try {
+      const stocks = await fetchNodeMarket(node, market);
+      all.push(...stocks);
+    } catch { /* skip */ }
+  }
+  return all;
 }
 
 // ───── 公开接口 ─────
-
 /** 搜索股票 — 合并内置+缓存数据 */
 export function searchStocksLocal(query: string): StockSearchItem[] {
   const q = query.trim();
   if (!q) return [];
 
-  // 合并内置 + 缓存（缓存覆盖同名股票）
   const seen = new Map<string, StockSearchItem>();
   for (const s of BUILT_IN_DB) seen.set(s.code, s);
   const cached = loadCache();
-  if (cached) {
-    for (const s of cached) seen.set(s.code, s);
-  }
+  if (cached) { for (const s of cached) seen.set(s.code, s); }
   const source = [...seen.values()];
 
   const results = source.filter((s) => {
@@ -195,12 +147,19 @@ export function searchStocksLocal(query: string): StockSearchItem[] {
   return results.slice(0, 20);
 }
 
-/** 每周尝试从 API 拉取全量数据并缓存 */
+/** 立即从 API 拉取全量数据并缓存（强制） */
+export async function forceRefreshStockDB(): Promise<number> {
+  const data = await fetchAllStocksFromAPI();
+  if (data.length > 100) {
+    saveCache(data);
+  }
+  return data.length;
+}
+
+/** 每周检查更新 */
 export function tryRefreshStockDB() {
   if (!shouldRefresh()) return;
   fetchAllStocksFromAPI().then((data) => {
-    if (data) {
-      saveCache(data);
-    }
+    if (data.length > 100) saveCache(data);
   }).catch(() => {});
 }

@@ -8,7 +8,7 @@ import { useLocalStorage } from './hooks/useLocalStorage';
 import { useRealtimePrices } from './hooks/useRealtimePrices';
 import { useToast } from './hooks/useToast';
 import { genId } from './data/utils';
-import { tryRefreshStockDB } from './data/stockSearchDb';
+import { forceRefreshStockDB } from './data/stockSearchDb';
 import type { Board, Stock, ThemeMode, ColorMode, ToastItem } from './types';
 
 // 数据版本 — 每次重大变更时递增，自动重置旧缓存
@@ -57,8 +57,12 @@ export default function App() {
     document.body.classList.toggle('theme-light', theme === 'light');
   }, [theme]);
 
-  // 启动后尝试拉取全量股票数据
-  useEffect(() => { tryRefreshStockDB(); }, []);
+  // 启动后立即拉取全量股票数据
+  useEffect(() => {
+    forceRefreshStockDB().then((count) => {
+      if (count > 0) console.log(`股票数据库已更新：${count} 只`);
+    });
+  }, []);
 
   // Apply color mode
   useEffect(() => {
