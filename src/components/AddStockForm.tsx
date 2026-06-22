@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import styles from './AddStockForm.module.css';
-import { searchStocksApi } from '../data/sinaApi';
-import type { StockSearchResult } from '../data/sinaApi';
+import { searchStocksLocal } from '../data/stockSearchDb';
+import type { StockSearchItem } from '../data/stockSearchDb';
 import { entryToStock } from '../data/utils';
 import type { Stock } from '../types';
 
@@ -13,10 +13,8 @@ interface Props {
 
 export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<StockSearchResult[]>([]);
-  const [searching, setSearching] = useState(false);
+  const [results, setResults] = useState<StockSearchItem[]>([]);
   const [searched, setSearched] = useState(false);
-  const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const doAdd = (stock: Stock) => {
@@ -24,20 +22,12 @@ export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
     onClose();
   };
 
-  const handleSearch = useCallback(async () => {
+  const handleSearch = useCallback(() => {
     const q = query.trim();
     if (!q) return;
-    setSearching(true);
     setSearched(true);
-    setError('');
-    try {
-      const res = await searchStocksApi(q);
-      setResults(res);
-    } catch {
-      setResults([]);
-      setError('搜索服务不可用');
-    }
-    setSearching(false);
+    const res = searchStocksLocal(q);
+    setResults(res);
   }, [query]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -46,7 +36,6 @@ export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
 
   return (
     <div className={styles.addForm}>
-      {/* 搜索栏 */}
       <div className={styles.searchRow}>
         <input
           ref={inputRef}
@@ -56,22 +45,15 @@ export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
         />
-        <button className={styles.searchBtn} onClick={handleSearch} disabled={searching}>
-          {searching ? (
-            <span style={{ opacity: 0.6 }}>搜索中...</span>
-          ) : (
-            <>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-              </svg>
-              查询
-            </>
-          )}
+        <button className={styles.searchBtn} onClick={handleSearch}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+          </svg>
+          查询
         </button>
       </div>
 
-      {/* 搜索结果 */}
-      {searched && !searching && results.length > 0 && (
+      {searched && results.length > 0 && (
         <div className={styles.resultList}>
           {results.map((r) => (
             <button
@@ -90,11 +72,8 @@ export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
           ))}
         </div>
       )}
-      {searched && !searching && results.length === 0 && !error && (
+      {searched && results.length === 0 && (
         <div className={styles.emptyResult}>未找到匹配的股票</div>
-      )}
-      {error && (
-        <div className={styles.emptyResult} style={{ color: 'var(--fall-color)' }}>{error}</div>
       )}
     </div>
   );
