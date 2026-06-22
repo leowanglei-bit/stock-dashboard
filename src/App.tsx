@@ -1,11 +1,11 @@
-import React, { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import styles from './App.module.css';
 import Navbar from './components/Navbar';
 import SectionGroup from './components/SectionGroup';
 import Modal from './components/Modal';
 import ToastContainer from './components/ToastContainer';
 import { useLocalStorage } from './hooks/useLocalStorage';
-import { usePriceSimulation } from './hooks/usePriceSimulation';
+import { useRealtimePrices } from './hooks/useRealtimePrices';
 import { useToast } from './hooks/useToast';
 import { genId, entryToStock } from './data/utils';
 import { STOCK_DATABASE } from './data/mockStocks';
@@ -48,6 +48,8 @@ export default function App() {
   const [boards, setBoards] = useLocalStorage<Record<string, Board>>('stock_boards', INITIAL_BOARDS);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [modal, setModal] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
+  const [lastUpdateTime, setLastUpdateTime] = useState<string>('');
+  const [dataSource, setDataSource] = useState<'realtime' | 'simulating' | 'fetching'>('fetching');
   const toast = useToast(setToasts);
 
   // Drag state
@@ -55,17 +57,28 @@ export default function App() {
   const [draggingStockId, setDraggingStockId] = useState<string | null>(null);
 
   // Apply theme
-  React.useEffect(() => {
+  useEffect(() => {
     document.body.classList.toggle('theme-light', theme === 'light');
   }, [theme]);
 
   // Apply color mode
-  React.useEffect(() => {
+  useEffect(() => {
     document.body.classList.toggle('color-mode-us', colorMode === 'us');
   }, [colorMode]);
 
-  // Price simulation
-  usePriceSimulation(boards, setBoards, intervalMs, simulationActive);
+  // Realtime prices (falls back to simulation if API unavailable)
+  useRealtimePrices({
+    boards,
+    setBoards,
+    intervalMs,
+    active: simulationActive,
+    onUpdateTime: setLastUpdateTime,
+    onStatusChange: (status) => {
+      if (status === 'ok') setDataSource('realtime');
+      else if (status === 'simulating' || status === 'error') setDataSource('simulating');
+      else if (status === 'fetching') setDataSource('fetching');
+    },
+  });
 
   const toggleTheme = useCallback(() => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
@@ -272,6 +285,8 @@ export default function App() {
         intervalMs={intervalMs}
         simulationActive={simulationActive}
         boardCount={Object.keys(boards).length}
+        lastUpdateTime={lastUpdateTime}
+        dataSource={dataSource}
         onToggleTheme={toggleTheme}
         onToggleColorMode={toggleColorMode}
         onIntervalChange={setIntervalMs}

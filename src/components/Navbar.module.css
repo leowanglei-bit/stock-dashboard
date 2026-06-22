@@ -68,6 +68,12 @@
   50% { opacity: 0.8; transform: scale(1.05); }
 }
 
+.updateTime {
+  font-family: monospace;
+  font-size: 0.78rem;
+  opacity: 0.8;
+}
+
 .navRight {
   display: flex;
   align-items: center;
