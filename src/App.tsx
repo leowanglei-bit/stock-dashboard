@@ -49,7 +49,7 @@ export default function App() {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [modal, setModal] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
   const [lastUpdateTime, setLastUpdateTime] = useState<string>('');
-  const [dataSource, setDataSource] = useState<'realtime' | 'simulating' | 'fetching'>('fetching');
+  const [apiStatus, setApiStatus] = useState<'fetching' | 'ok' | 'unavailable'>('fetching');
   const toast = useToast(setToasts);
 
   // Drag state
@@ -66,18 +66,14 @@ export default function App() {
     document.body.classList.toggle('color-mode-us', colorMode === 'us');
   }, [colorMode]);
 
-  // Realtime prices (falls back to simulation if API unavailable)
+  // Realtime prices — 绝不虚构数据
   useRealtimePrices({
-    boards,
+    _boards: boards,
     setBoards,
     intervalMs,
     active: simulationActive,
     onUpdateTime: setLastUpdateTime,
-    onStatusChange: (status) => {
-      if (status === 'ok') setDataSource('realtime');
-      else if (status === 'simulating' || status === 'error') setDataSource('simulating');
-      else if (status === 'fetching') setDataSource('fetching');
-    },
+    onApiStatus: setApiStatus,
   });
 
   const toggleTheme = useCallback(() => {
@@ -286,7 +282,7 @@ export default function App() {
         simulationActive={simulationActive}
         boardCount={Object.keys(boards).length}
         lastUpdateTime={lastUpdateTime}
-        dataSource={dataSource}
+        apiStatus={apiStatus}
         onToggleTheme={toggleTheme}
         onToggleColorMode={toggleColorMode}
         onIntervalChange={setIntervalMs}

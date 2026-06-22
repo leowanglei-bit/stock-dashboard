@@ -8,7 +8,7 @@ interface NavbarProps {
   simulationActive: boolean;
   boardCount: number;
   lastUpdateTime: string;
-  dataSource: 'realtime' | 'simulating' | 'fetching';
+  apiStatus: 'fetching' | 'ok' | 'unavailable';
   onToggleTheme: () => void;
   onToggleColorMode: () => void;
   onIntervalChange: (ms: number) => void;
@@ -24,7 +24,7 @@ export default function Navbar({
   simulationActive,
   boardCount,
   lastUpdateTime,
-  dataSource,
+  apiStatus,
   onToggleTheme,
   onToggleColorMode,
   onIntervalChange,
@@ -59,10 +59,14 @@ export default function Navbar({
             className={`${styles.pulseDot} ${simulationActive ? styles.pulseDotActive : styles.pulseDotPaused}`}
           />
           <span>
-            {simulationActive
-              ? `${dataSource === 'realtime' ? '实时' : '模拟'} · ${boardCount}个板块`
-              : '已暂停'}
-            {lastUpdateTime && simulationActive && <span className={styles.updateTime}> | {lastUpdateTime}</span>}
+            {apiStatus === 'unavailable' ? (
+              <span style={{ color: 'var(--fall-color)' }}>网络不可用！</span>
+            ) : simulationActive ? (
+              `${apiStatus === 'fetching' ? '加载中' : '实时'} · ${boardCount}个板块`
+            ) : '已暂停'}
+            {lastUpdateTime && simulationActive && apiStatus === 'ok' && (
+              <span className={styles.updateTime}> | {lastUpdateTime}</span>
+            )}
           </span>
         </div>
       </div>

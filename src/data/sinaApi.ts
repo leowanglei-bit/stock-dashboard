@@ -1,69 +1,86 @@
 /**
- * 通过新浪财经 API 获取 A 股实时行情
- * API: https://hq.sinajs.cn/list=<code1>,<code2>,...
- * 返回格式: var hq_str_sh600519="贵州茅台,1999.00,2000.00,1980.00,...";
+ * A 股实时行情数据源
+ * 主用: 新浪财经 hq.sinajs.cn
+ * 备用: 腾讯证券 qt.gtimg.cn
+ * 全部不可用 => 返回空数组，由上层展示"网络不可用"
  */
 
-/** 将股票代码转为新浪 API 格式 */
-function toSinaCode(code: string, market?: string): string {
-  // 已有前缀的直接返回
-  if (code.startsWith('sh') || code.startsWith('sz') || code.startsWith('bj')) {
-    return code;
-  }
-  // 6开头 → 沪市主板/科创板
+export interface StockQuote {
+  code: string;       // 新浪格式代码 (如 sh600519)
+  name: string;
+  price: number;
+  prevClose: number;
+  changePercent: number;
+  time: string;
+}
+
+// ───── 新浪 API ─────
+function sinaCode(code: string, market?: string): string {
+  if (code.startsWith('sh') || code.startsWith('sz') || code.startsWith('bj')) return code;
   if (code.startsWith('6')) return `sh${code}`;
-  // 4/8开头 → 北交所
   if (code.startsWith('4') || code.startsWith('8')) return `bj${code}`;
-  // 0/3开头 → 深市
   if (code.startsWith('0') || code.startsWith('3')) return `sz${code}`;
-  // 未知，用传入的 market 判断
-  if (market === 'sh' || market === 'star') return `sh${code}`;
-  return `sz${code}`;
+  return market === 'sh' || market === 'star' ? `sh${code}` : `sz${code}`;
 }
 
-export interface SinaQuote {
-  code: string;       // 原始代码
-  name: string;       // 股票名称
-  open: number;       // 今开
-  prevClose: number;  // 昨收
-  price: number;      // 当前价
-  high: number;       // 最高
-  low: number;        // 最低
-  volume: number;     // 成交量(手)
-  amount: number;     // 成交额(万)
-  changePercent: number; // 涨跌幅
-  time: string;       // 更新时间
-}
-
-function parseSinaResponse(text: string): SinaQuote[] {
-  const results: SinaQuote[] = [];
-  const lines = text.split('\n');
-  for (const line of lines) {
-    const match = line.match(/var hq_str_(\w+)="(.+)"/);
-    if (!match) continue;
-    const parts = match[2].split(',');
+function parseSina(text: string): StockQuote[] {
+  const results: StockQuote[] = [];
+  for (const line of text.split('\n')) {
+    const m = line.match(/var hq_str_(\w+)="(.+)"/);
+    if (!m) continue;
+    const parts = m[2].split(',');
     if (parts.length < 32) continue;
-
-    const name = parts[0];
-    const open = parseFloat(parts[1]);
-    const prevClose = parseFloat(parts[2]);
+    const pc = parseFloat(parts[2]);
     const price = parseFloat(parts[3]);
-    const high = parseFloat(parts[4]);
-    const low = parseFloat(parts[5]);
-    const volume = parseFloat(parts[8]);      // 手
-    const amount = parseFloat(parts[9]) / 10000; // 转为万
-    const time = parts[31] || '';
-
     results.push({
-      code: match[1],
-      name,
-      open,
-      prevClose,
+      code: m[1],
+      name: parts[0],
       price,
-      high,
-      low,
-      volume,
-      amount,
+      prevClose: pc,
+      changePercent: pc > 0 ? parseFloat((((price - pc) / pc) * 100).toFixed(2)) : 0,
+      time: parts[31] || '',
+    });
+  }
+  return results;
+}
+
+async function fetchSina(codes: string[]): Promise<StockQuote[]> {
+  const url = `https://hq.sinajs.cn/list=${codes.join(',')}`;
+  const res = await fetch(url, {
+    headers: { Referer: 'https://finance.sina.com.cn' },
+    signal: AbortSignal.timeout(6000),
+  });
+  const buf = await res.arrayBuffer();
+  const text = new TextDecoder('gbk').decode(buf);
+  return parseSina(text);
+}
+
+// ───── 腾讯 API ─────
+function tencentCode(code: string, market?: string): string {
+  if (code.startsWith('sh') || code.startsWith('sz') || code.startsWith('bj')) return code;
+  if (code.startsWith('6')) return `sh${code}`;
+  if (code.startsWith('0') || code.startsWith('3')) return `sz${code}`;
+  if (code.startsWith('4') || code.startsWith('8')) return `bj${code}`;
+  return market === 'sh' || market === 'star' ? `sh${code}` : `sz${code}`;
+}
+
+function parseTencent(text: string): StockQuote[] {
+  const results: StockQuote[] = [];
+  for (const line of text.split('\n')) {
+    const m = line.match(/v_(\w+)="(.+)"/);
+    if (!m) continue;
+    const parts = m[2].split('~');
+    if (parts.length < 46) continue;
+    const name = parts[1];
+    const code = parts[2];
+    const price = parseFloat(parts[3]);
+    const prevClose = parseFloat(parts[4]);
+    const time = `${parts[30]} ${parts[31]}`;
+    results.push({
+      code: m[1],
+      name: name || code,
+      price,
+      prevClose,
       changePercent: prevClose > 0 ? parseFloat((((price - prevClose) / prevClose) * 100).toFixed(2)) : 0,
       time,
     });
@@ -71,60 +88,60 @@ function parseSinaResponse(text: string): SinaQuote[] {
   return results;
 }
 
-export async function fetchRealtimeQuotes(stocks: { code: string; market?: string }[]): Promise<SinaQuote[]> {
-  if (stocks.length === 0) return [];
-
-  const sinaCodes = stocks.map((s) => toSinaCode(s.code, s.market));
-  // 分批，每批最多 50 个
-  const BATCH_SIZE = 50;
-  const allQuotes: SinaQuote[] = [];
-
-  for (let i = 0; i < sinaCodes.length; i += BATCH_SIZE) {
-    const batch = sinaCodes.slice(i, i + BATCH_SIZE);
-    const url = `https://hq.sinajs.cn/list=${batch.join(',')}`;
-
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-      const res = await fetch(url, {
-        signal: controller.signal,
-        headers: { Referer: 'https://finance.sina.com.cn' },
-      });
-      clearTimeout(timeout);
-
-      const text = await res.text();
-      // 解码 GBK 编码
-      const decoder = new TextDecoder('gbk');
-      const decoded = decoder.decode(
-        typeof text === 'string' ? new TextEncoder().encode(text) : text
-      );
-      const quotes = parseSinaResponse(decoded);
-      allQuotes.push(...quotes);
-    } catch (err) {
-      console.warn(`Sina API batch failed:`, err);
-    }
-  }
-
-  return allQuotes;
+async function fetchTencent(codes: string[]): Promise<StockQuote[]> {
+  const url = `https://qt.gtimg.cn/q=${codes.join(',')}`;
+  const res = await fetch(url, {
+    signal: AbortSignal.timeout(6000),
+  });
+  const text = await res.text();
+  return parseTencent(text);
 }
 
-/** 将新浪报价合并到本地股票数据中 */
-export function mergeQuotesIntoStocks(
-  stocks: { id: string; code: string; market: string; price: number; prevClose: number }[],
-  quotes: SinaQuote[]
-): { id: string; price: number; prevClose: number; changePercent: number }[] {
-  return stocks.map((stock) => {
-    const sinaCode = toSinaCode(stock.code, stock.market);
-    const quote = quotes.find((q) => q.code === sinaCode);
-    if (quote && quote.price > 0) {
-      return {
-        id: stock.id,
-        price: quote.price,
-        prevClose: quote.prevClose,
-        changePercent: quote.changePercent,
-      };
+// ───── 统一入口 ─────
+export async function fetchRealtimeQuotes(
+  stocks: { code: string; market?: string }[]
+): Promise<{ quotes: StockQuote[]; source: 'sina' | 'tencent' | null }> {
+  if (stocks.length === 0) return { quotes: [], source: null };
+
+  const codes = stocks.map((s) => sinaCode(s.code, s.market));
+  // 去重
+  const unique = [...new Set(codes)];
+
+  // 1. 试新浪
+  try {
+    const quotes = await fetchSina(unique);
+    if (quotes.length > 0 && quotes.some((q) => q.price > 0)) {
+      return { quotes, source: 'sina' };
     }
-    // 无数据时保持原值
-    return { id: stock.id, price: stock.price, prevClose: stock.prevClose, changePercent: 0 };
-  });
+  } catch { /* 继续试备用 */ }
+
+  // 2. 试腾讯
+  try {
+    const tencentCodes = stocks.map((s) => tencentCode(s.code, s.market));
+    const tUnique = [...new Set(tencentCodes)];
+    const quotes = await fetchTencent(tUnique);
+    if (quotes.length > 0 && quotes.some((q) => q.price > 0)) {
+      return { quotes, source: 'tencent' };
+    }
+  } catch { /* 无可用数据源 */ }
+
+  // 3. 全部不可用
+  return { quotes: [], source: null };
+}
+
+/** 将行情报价合并到本地股票数据 */
+export function mergeQuotes(
+  stocks: { id: string; code: string; market: string }[],
+  quotes: StockQuote[]
+): Map<string, { price: number; prevClose: number; changePercent: number }> {
+  const map = new Map<string, { price: number; prevClose: number; changePercent: number }>();
+
+  for (const stock of stocks) {
+    const sc = sinaCode(stock.code, stock.market);
+    const q = quotes.find((x) => x.code === sc);
+    if (q && q.price > 0) {
+      map.set(stock.id, { price: q.price, prevClose: q.prevClose, changePercent: q.changePercent });
+    }
+  }
+  return map;
 }
