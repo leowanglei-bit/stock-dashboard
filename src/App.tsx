@@ -294,6 +294,9 @@ export default function App() {
           onBoardDragOver={handleBoardDragOver}
         />
       </div>
+      <div className={styles.footer}>
+        心有灵犀 谈笑间 众生皆有回响 ｜ 味归平淡 静思处 乾坤尽纳一盏
+      </div>
       <ToastContainer toasts={toasts} />
       {modal && (
         <Modal
