@@ -5,12 +5,14 @@ import { entryToStock } from '../data/utils';
 import type { Stock } from '../types';
 
 interface Props {
-  onAddStock: (stock: Stock) => void;
+  boardId: string;
+  onAddStock: (boardId: string, stock: Stock) => void;
+  onClose: () => void;
 }
 
 const HOT_TAGS = ['中际旭创', '宁德时代', '比亚迪', '贵州茅台', '中兴通讯', '中芯国际', '科大讯飞', '东方财富'];
 
-export default function AddStockForm({ onAddStock }: Props) {
+export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ReturnType<typeof searchStocks>>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -29,12 +31,13 @@ export default function AddStockForm({ onAddStock }: Props) {
     }
   }, [query]);
 
+  const doAdd = (stock: Stock) => {
+    onAddStock(boardId, stock);
+    onClose();
+  };
+
   const selectEntry = (entry: typeof results[0]) => {
-    const stock = entryToStock(entry);
-    onAddStock(stock);
-    setQuery('');
-    setShowDropdown(false);
-    inputRef.current?.focus();
+    doAdd(entryToStock(entry));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -89,14 +92,14 @@ export default function AddStockForm({ onAddStock }: Props) {
 
       <div className={styles.manualSection}>
         <span className={styles.manualLabel}>或手动添加（代码 + 名称）</span>
-        <ManualAddForm onAddStock={onAddStock} />
+        <ManualAddForm boardId={boardId} onAddStock={onAddStock} onClose={onClose} />
       </div>
 
       <div className={styles.presets}>
         {HOT_TAGS.map((name) => {
           const entry = STOCK_DATABASE.find((s) => s.name === name);
           return entry ? (
-            <button key={entry.code} className={styles.presetBadge} onClick={() => selectEntry(entry)}>
+            <button key={entry.code} className={styles.presetBadge} onClick={() => doAdd(entryToStock(entry))}>
               {entry.name}
             </button>
           ) : null;
@@ -106,18 +109,18 @@ export default function AddStockForm({ onAddStock }: Props) {
   );
 }
 
-function ManualAddForm({ onAddStock }: Props) {
+function ManualAddForm({ boardId, onAddStock, onClose }: Props) {
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
 
   const handleSubmit = () => {
     if (!code.trim() || !name.trim()) return;
-    // Try to look up the code in DB
     const existing = searchStocks(code.trim())[0];
     const entry = existing || { code: code.trim(), name: name.trim(), market: 'sz' as const };
     const stock = entryToStock(entry);
     stock.name = name.trim();
-    onAddStock(stock);
+    onAddStock(boardId, stock);
+    onClose();
     setCode('');
     setName('');
   };

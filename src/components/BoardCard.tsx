@@ -123,7 +123,13 @@ export default function BoardCard({
         {showForm ? '收起' : '添加股票'}
       </button>
 
-      {showForm && <AddStockForm onAddStock={(stock) => { onAddStock(board.id, stock); setShowForm(false); }} />}
+      {showForm && (
+        <AddStockForm
+          boardId={board.id}
+          onAddStock={onAddStock}
+          onClose={() => setShowForm(false)}
+        />
+      )}
     </div>
   );
 }
