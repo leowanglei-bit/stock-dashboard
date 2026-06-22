@@ -7,53 +7,15 @@ import ToastContainer from './components/ToastContainer';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useRealtimePrices } from './hooks/useRealtimePrices';
 import { useToast } from './hooks/useToast';
-import { genId, entryToStock } from './data/utils';
+import { genId } from './data/utils';
 import type { Board, Stock, ThemeMode, ColorMode, ToastItem } from './types';
-
-function createInitialBoard(title: string, stockNames: string[]): Board {
-  const stocks: Stock[] = stockNames
-    .map((name) => {
-      const stock = INITIAL_STOCK_DATA.find((s) => s.name === name);
-      return stock ? entryToStock(stock) : null;
-    })
-    .filter(Boolean) as Stock[];
-
-  return {
-    id: genId('brd'),
-    title,
-    stocks,
-  };
-}
-
-/** 初始化用的小型股票数据（代码 + 名称 + 市场） */
-const INITIAL_STOCK_DATA: { code: string; name: string; market: 'sh' | 'sz' | 'star' | 'chinext' | 'bse' }[] = [
-  { code: '300308', name: '中际旭创', market: 'chinext' },
-  { code: '300394', name: '天孚通信', market: 'chinext' },
-  { code: '300502', name: '新易盛', market: 'chinext' },
-  { code: '301205', name: '联特科技', market: 'chinext' },
-  { code: '688981', name: '中芯国际', market: 'star' },
-  { code: '002371', name: '北方华创', market: 'sz' },
-  { code: '603986', name: '兆易创新', market: 'sh' },
-  { code: '688012', name: '中微公司', market: 'star' },
-  { code: '603501', name: '韦尔股份', market: 'sh' },
-  { code: '002230', name: '科大讯飞', market: 'sz' },
-  { code: '603019', name: '中科曙光', market: 'sh' },
-  { code: '688111', name: '金山办公', market: 'star' },
-  { code: '300418', name: '昆仑万维', market: 'chinext' },
-];
-
-const INITIAL_BOARDS: Record<string, Board> = {
-  'brd-init-1': createInitialBoard('光模块核心股', ['中际旭创', '天孚通信', '新易盛', '联特科技']),
-  'brd-init-2': createInitialBoard('芯片半导体', ['中芯国际', '北方华创', '兆易创新', '中微公司', '韦尔股份']),
-  'brd-init-3': createInitialBoard('AI 概念', ['科大讯飞', '中科曙光', '金山办公', '昆仑万维']),
-};
 
 export default function App() {
   const [theme, setTheme] = useLocalStorage<ThemeMode>('stock_theme_mode', 'dark');
   const [colorMode, setColorMode] = useLocalStorage<ColorMode>('stock_color_mode', 'cn');
   const [intervalMs, setIntervalMs] = useLocalStorage('stock_interval', 3000);
   const [simulationActive, setSimulationActive] = useState(true);
-  const [boards, setBoards] = useLocalStorage<Record<string, Board>>('stock_boards', INITIAL_BOARDS);
+  const [boards, setBoards] = useLocalStorage<Record<string, Board>>('stock_boards', {});
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [modal, setModal] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
   const [lastUpdateTime, setLastUpdateTime] = useState<string>('');
