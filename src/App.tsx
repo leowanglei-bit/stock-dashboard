@@ -8,6 +8,7 @@ import { useLocalStorage } from './hooks/useLocalStorage';
 import { useRealtimePrices } from './hooks/useRealtimePrices';
 import { useToast } from './hooks/useToast';
 import { genId } from './data/utils';
+import { tryRefreshStockDB } from './data/stockSearchDb';
 import type { Board, Stock, ThemeMode, ColorMode, ToastItem } from './types';
 
 export default function App() {
@@ -30,6 +31,9 @@ export default function App() {
   useEffect(() => {
     document.body.classList.toggle('theme-light', theme === 'light');
   }, [theme]);
+
+  // 启动后尝试拉取全量股票数据
+  useEffect(() => { tryRefreshStockDB(); }, []);
 
   // Apply color mode
   useEffect(() => {
