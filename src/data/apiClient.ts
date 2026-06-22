@@ -1,6 +1,7 @@
 /**
  * 服务端数据持久化 — GitHub Repository API
- * 读写 data/boards.json，跨设备数据一致
+ * 自动读写 data/boards.json，跨设备数据一致
+ * Token 从 localStorage 读取，用户无感
  */
 
 const OWNER = 'leowanglei-bit';
@@ -12,74 +13,57 @@ export interface ServerData {
   boardOrder: string[];
 }
 
-let authToken = '';
 let fileSha: string | null = null;
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingData: ServerData | null = null;
 
-export function setAuthToken(token: string) {
-  authToken = token;
-}
-
-export function hasAuthToken(): boolean {
-  return authToken.length > 0;
+function getToken(): string {
+  try {
+    return (typeof localStorage !== 'undefined' ? localStorage.getItem('github_token') : '') || '';
+  } catch { return ''; }
 }
 
 function authHeaders(): Record<string, string> {
-  const prefix = 'Bearer';
-  const headers: Record<string, string> = { Accept: 'application/vnd.github+json' };
-  if (authToken) headers['Authorization'] = prefix + ' ' + authToken;
-  return headers;
+  const tok = getToken();
+  const h: Record<string, string> = { Accept: 'application/vnd.github+json' };
+  if (tok) {
+    const prefix = 'Bearer';
+    h['Authorization'] = prefix + ' ' + tok;
+  }
+  return h;
 }
 
-/** 从服务器加载数据 */
 export async function loadFromServer(): Promise<ServerData | null> {
-  // 先尝试 raw（无认证，无速率限制）
   try {
-    const rawUrl = 'https://raw.githubusercontent.com/' + OWNER + '/' + REPO + '/main/' + FILE_PATH;
+    const rawUrl = `https://raw.githubusercontent.com/${OWNER}/${REPO}/main/${FILE_PATH}`;
     const rawRes = await fetch(rawUrl, { signal: AbortSignal.timeout(5000) });
     if (rawRes.ok) return await rawRes.json();
-  } catch { /* fallback */ }
+  } catch {}
 
-  // API 方式（有认证可读私有）
-  if (!authToken) return null;
   try {
-    const url = 'https://api.github.com/repos/' + OWNER + '/' + REPO + '/contents/' + FILE_PATH;
-    const res = await fetch(url, {
-      headers: authHeaders(),
-      signal: AbortSignal.timeout(5000),
-    });
+    const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`;
+    const res = await fetch(url, { headers: authHeaders(), signal: AbortSignal.timeout(5000) });
     if (!res.ok) return null;
     const data = await res.json();
-    const content = atob(data.content);
     fileSha = data.sha;
-    return JSON.parse(content);
-  } catch {
-    return null;
-  }
+    const decoded = decodeURIComponent(escape(atob(data.content)));
+    return JSON.parse(decoded);
+  } catch { return null; }
 }
 
-/** 保存数据到服务器（立即执行） */
 async function doSave(data: ServerData): Promise<boolean> {
-  if (!authToken) return false;
+  if (!getToken()) return false;
   const json = JSON.stringify(data, null, 2);
-  const content = btoa(unescape(encodeURIComponent(json))); // 支持中文
+  const content = btoa(unescape(encodeURIComponent(json)));
 
   try {
-    // 获取最新 SHA
     if (!fileSha) {
-      const url = 'https://api.github.com/repos/' + OWNER + '/' + REPO + '/contents/' + FILE_PATH;
-      const getRes = await fetch(url, {
-        headers: authHeaders(),
-        signal: AbortSignal.timeout(5000),
-      });
-      if (getRes.ok) {
-        const meta = await getRes.json();
-        fileSha = meta.sha;
-      }
+      const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`;
+      const getRes = await fetch(url, { headers: authHeaders(), signal: AbortSignal.timeout(5000) });
+      if (getRes.ok) { const meta = await getRes.json(); fileSha = meta.sha; }
     }
 
-    const putUrl = 'https://api.github.com/repos/' + OWNER + '/' + REPO + '/contents/' + FILE_PATH;
+    const putUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`;
     const body: any = { message: 'update boards [auto]', content };
     if (fileSha) body.sha = fileSha;
 
@@ -95,24 +79,15 @@ async function doSave(data: ServerData): Promise<boolean> {
       fileSha = result.content?.sha || null;
       return true;
     }
-    if (putRes.status === 409) { // SHA 冲突，重试
-      fileSha = null;
-      return doSave(data);
-    }
+    if (putRes.status === 409) { fileSha = null; return doSave(data); }
     return false;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
-/** 保存数据（防抖 2 秒） */
 export function saveToServer(data: ServerData) {
   pendingData = data;
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
-    if (pendingData) {
-      await doSave(pendingData);
-      pendingData = null;
-    }
+    if (pendingData) { await doSave(pendingData); pendingData = null; }
   }, 2000);
 }

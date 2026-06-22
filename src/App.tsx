@@ -8,7 +8,7 @@ import { useLocalStorage } from './hooks/useLocalStorage';
 import { useRealtimePrices } from './hooks/useRealtimePrices';
 import { useToast } from './hooks/useToast';
 import { genId } from './data/utils';
-import { loadFromServer, saveToServer, setAuthToken, hasAuthToken } from './data/apiClient';
+import { loadFromServer, saveToServer } from './data/apiClient';
 import type { Board, Stock, ThemeMode, ColorMode, ToastItem } from './types';
 
 // 数据版本 — 每次重大变更时递增，自动重置旧缓存
@@ -35,12 +35,8 @@ export default function App() {
   const [apiStatus, setApiStatus] = useState<'fetching' | 'ok' | 'unavailable'>('fetching');
   const toast = useToast(setToasts);
 
-  // 初始化 API Token（从 localStorage 读取）
+  // 初始化：从服务器加载数据
   useEffect(() => {
-    const saved = localStorage.getItem('github_token');
-    if (saved) setAuthToken(saved);
-
-    // 从服务器加载数据
     loadFromServer().then((data) => {
       if (data && Object.keys(data.boards).length > 0) {
         setBoards(data.boards as Record<string, Board>);
@@ -52,7 +48,6 @@ export default function App() {
 
   // 数据变化时自动保存到服务器
   useEffect(() => {
-    if (!hasAuthToken()) return;
     saveToServer({ boards, boardOrder });
   }, [boards, boardOrder]);
 
