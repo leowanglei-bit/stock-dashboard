@@ -39,13 +39,21 @@ function parseSina(text: string): StockQuote[] {
     if (parts.length < 32) continue;
     const pc = parseFloat(parts[2]);
     const price = parseFloat(parts[3]);
+    // 时间戳：尽量提取 HH:MM 格式，否则用当前时间
+    const rawTime = parts[parts.length - 2] || ''; // 一般是日期如 2025-06-22
+    const rawTime2 = parts[parts.length - 1] || ''; // 一般是时间如 15:00:00
+    const timeMatch = rawTime2.match(/(\d{2}:\d{2})/);
+    const dateMatch = rawTime.match(/\d{4}-\d{2}-\d{2}/);
+    const displayTime = timeMatch
+      ? `${dateMatch ? dateMatch[0] + ' ' : ''}${timeMatch[1]}`
+      : new Date().toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit' });
     results.push({
       code: m[1],
       name: parts[0],
       price,
       prevClose: pc,
       changePercent: pc > 0 ? parseFloat((((price - pc) / pc) * 100).toFixed(2)) : 0,
-      time: parts[31] || '',
+      time: displayTime,
     });
   }
   return results;

@@ -64,7 +64,7 @@ export function useRealtimePrices({
       }
 
       const qt = quotes.find((q) => q.time);
-      onUpdateTime?.(qt?.time || new Date().toLocaleTimeString('zh-CN'));
+      onUpdateTime?.(qt?.time || new Date().toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit' }));
       onApiStatus?.('ok');
     } else {
       // 所有 API 全部不可用
