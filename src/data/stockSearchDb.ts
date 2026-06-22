@@ -165,16 +165,20 @@ async function fetchAllStocksFromAPI(): Promise<StockSearchItem[] | null> {
 }
 
 // ───── 公开接口 ─────
-let cachedFull: StockSearchItem[] | null = null;
 
-/** 搜索股票 — 先查缓存，再查内置 */
+/** 搜索股票 — 合并内置+缓存数据 */
 export function searchStocksLocal(query: string): StockSearchItem[] {
   const q = query.trim();
   if (!q) return [];
 
-  // 优先用缓存（API 拉取的全量数据）
-  if (!cachedFull) cachedFull = loadCache();
-  const source = cachedFull || BUILT_IN_DB;
+  // 合并内置 + 缓存（缓存覆盖同名股票）
+  const seen = new Map<string, StockSearchItem>();
+  for (const s of BUILT_IN_DB) seen.set(s.code, s);
+  const cached = loadCache();
+  if (cached) {
+    for (const s of cached) seen.set(s.code, s);
+  }
+  const source = [...seen.values()];
 
   const results = source.filter((s) => {
     if (s.name === q || s.code === q) return true;
@@ -196,7 +200,6 @@ export function tryRefreshStockDB() {
   if (!shouldRefresh()) return;
   fetchAllStocksFromAPI().then((data) => {
     if (data) {
-      cachedFull = data;
       saveCache(data);
     }
   }).catch(() => {});
