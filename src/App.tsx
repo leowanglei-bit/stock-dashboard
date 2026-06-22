@@ -113,20 +113,16 @@ export default function App() {
 
   // === STOCK OPERATIONS ===
   const addStock = useCallback((boardId: string, stock: Stock) => {
-    console.log('[addStock] called with', { boardId, stockName: stock.name, boardKeys: Object.keys(boards) });
     setBoards((prev) => {
       const board = prev[boardId];
-      console.log('[addStock] updater:', { boardId, hasBoard: !!board, prevKeys: Object.keys(prev), prevCount: board?.stocks?.length });
       if (!board) return prev;
-      const newStocks = [...board.stocks, stock];
-      console.log('[addStock] new stocks:', newStocks.map(s => s.name));
       return {
         ...prev,
-        [boardId]: { ...board, stocks: newStocks },
+        [boardId]: { ...board, stocks: [...board.stocks, stock] },
       };
     });
     toast(`已添加 ${stock.name}`, 'success');
-  }, [boards, setBoards, toast]);
+  }, [setBoards, toast]);
 
   const deleteStock = useCallback((boardId: string, stockId: string) => {
     setBoards((prev) => {

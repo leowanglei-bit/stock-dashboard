@@ -7,10 +7,14 @@
   background: var(--form-bg);
 }
 
-.searchContainer { position: relative; }
+/* ───── 搜索栏 ───── */
+.searchRow {
+  display: flex;
+  gap: 0.5rem;
+}
 
 .searchInput {
-  width: 100%;
+  flex: 1;
   padding: 0.4rem 0.6rem;
   border: 1px solid var(--border-color);
   border-radius: 6px;
@@ -23,27 +27,29 @@
 .searchInput:focus { border-color: var(--primary); }
 .searchInput::placeholder { color: var(--text-dim); }
 
-.spinner {
-  position: absolute;
-  right: 0.5rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
+.searchBtn {
+  flex-shrink: 0;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
 }
+.searchBtn:hover { background: var(--primary-dark); }
 
-.dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 50;
-  background: var(--card-bg);
-  border: 1px solid var(--border-highlight);
-  border-radius: 8px;
-  max-height: 240px;
+/* ───── 搜索结果列表（非浮层） ───── */
+.resultList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 200px;
   overflow-y: auto;
-  margin-top: 0.25rem;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  padding: 0.25rem 0;
 }
 
 .resultItem {
@@ -53,16 +59,17 @@
   align-items: center;
   padding: 0.45rem 0.65rem;
   font-size: 0.8rem;
-  background: none;
-  border: none;
+  background: var(--row-bg);
+  border: 1px solid var(--row-border);
+  border-radius: 6px;
   color: var(--foreground);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, border-color 0.15s;
 }
-.resultItem:first-child { border-radius: 8px 8px 0 0; }
-.resultItem:last-child { border-radius: 0 0 8px 8px; }
-.resultItem:hover, .resultActive { background: var(--row-hover-bg); }
-.resultEmoji { margin-right: 8px; }
+.resultItem:hover {
+  background: var(--row-hover-bg);
+  border-color: var(--border-highlight);
+}
 
 .resultLeft {
   display: flex;
@@ -73,10 +80,19 @@
 
 .resultName { color: var(--text-bright); font-weight: 600; white-space: nowrap; }
 .resultCode { color: var(--text-dim); font-family: monospace; font-size: 0.72rem; }
+.resultMarket { font-size: 0.7rem; color: var(--text-dim); }
 
+.emptyResult {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  text-align: center;
+  padding: 0.75rem 0;
+}
+
+/* ───── 手动添加 ───── */
 .manualSection { display: flex; flex-direction: column; gap: 0.25rem; }
 .manualLabel { color: var(--text-muted); font-size: 0.7rem; }
-.manualRow { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+.manualRow { display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.5rem; }
 .manualInput {
   width: 100%;
   padding: 0.35rem 0.5rem;
@@ -94,7 +110,7 @@
   color: #fff;
   border: none;
   border-radius: 6px;
-  padding: 0.35rem;
+  padding: 0.35rem 0.6rem;
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
@@ -106,6 +122,7 @@
 }
 .addSubmit:hover { background: var(--primary-dark); }
 
+/* ───── 预设热门标签 ───── */
 .presets {
   display: flex;
   flex-wrap: wrap;

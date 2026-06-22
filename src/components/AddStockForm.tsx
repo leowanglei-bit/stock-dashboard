@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import styles from './AddStockForm.module.css';
 import { searchStocks, STOCK_DATABASE } from '../data/mockStocks';
+import type { StockEntry } from '../data/mockStocks';
 import { entryToStock } from '../data/utils';
 import type { Stock } from '../types';
 
@@ -14,51 +15,28 @@ const HOT_TAGS = ['中际旭创', '宁德时代', '比亚迪', '贵州茅台', '
 
 export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<ReturnType<typeof searchStocks>>([]);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [activeIdx, setActiveIdx] = useState(-1);
+  const [results, setResults] = useState<StockEntry[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (query.length > 0) {
-      const r = searchStocks(query);
-      setResults(r);
-      setShowDropdown(r.length > 0);
-      setActiveIdx(-1);
-    } else {
-      setResults([]);
-      setShowDropdown(false);
-    }
-  }, [query]);
 
   const doAdd = (stock: Stock) => {
     onAddStock(boardId, stock);
     onClose();
   };
 
-  const selectEntry = (entry: typeof results[0]) => {
-    doAdd(entryToStock(entry));
+  const handleSearch = () => {
+    if (!query.trim()) return;
+    const r = searchStocks(query);
+    setResults(r);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!showDropdown || results.length === 0) return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setActiveIdx((prev) => (prev < results.length - 1 ? prev + 1 : 0));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActiveIdx((prev) => (prev > 0 ? prev - 1 : results.length - 1));
-    } else if (e.key === 'Enter' && activeIdx >= 0) {
-      e.preventDefault();
-      selectEntry(results[activeIdx]);
-    } else if (e.key === 'Escape') {
-      setShowDropdown(false);
-    }
+    if (e.key === 'Enter') handleSearch();
   };
 
   return (
     <div className={styles.addForm}>
-      <div className={styles.searchContainer}>
+      {/* 搜索栏 */}
+      <div className={styles.searchRow}>
         <input
           ref={inputRef}
           className={styles.searchInput}
@@ -66,35 +44,46 @@ export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          onFocus={() => results.length > 0 && setShowDropdown(true)}
-          onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
         />
-        {showDropdown && (
-          <div className={styles.dropdown}>
-            {results.map((r, i) => (
-              <button
-                key={r.code}
-                className={`${styles.resultItem} ${i === activeIdx ? styles.resultActive : ''}`}
-                onMouseDown={() => selectEntry(r)}
-              >
-                <div className={styles.resultLeft}>
-                  <span className={styles.resultName}>{r.name}</span>
-                  <span className={styles.resultCode}>{r.code}</span>
-                </div>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>
-                  {r.market === 'chinext' ? '创业板' : r.market === 'star' ? '科创板' : r.market === 'bse' ? '北交所' : '主板'}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
+        <button className={styles.searchBtn} onClick={handleSearch}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+          </svg>
+          查询
+        </button>
       </div>
 
+      {/* 搜索结果（非浮层，直接展示） */}
+      {results.length > 0 && (
+        <div className={styles.resultList}>
+          {results.map((r) => (
+            <button
+              key={r.code}
+              className={styles.resultItem}
+              onClick={() => doAdd(entryToStock(r))}
+            >
+              <div className={styles.resultLeft}>
+                <span className={styles.resultName}>{r.name}</span>
+                <span className={styles.resultCode}>{r.code}</span>
+              </div>
+              <span className={styles.resultMarket}>
+                {r.market === 'chinext' ? '创业板' : r.market === 'star' ? '科创板' : r.market === 'bse' ? '北交所' : '主板'}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+      {results.length === 0 && query.trim() && (
+        <div className={styles.emptyResult}>未找到匹配的股票，请尝试手动添加</div>
+      )}
+
+      {/* 手动添加 */}
       <div className={styles.manualSection}>
-        <span className={styles.manualLabel}>或手动添加（代码 + 名称）</span>
+        <span className={styles.manualLabel}>手动添加（代码 + 名称）</span>
         <ManualAddForm boardId={boardId} onAddStock={onAddStock} onClose={onClose} />
       </div>
 
+      {/* 热门预设 */}
       <div className={styles.presets}>
         {HOT_TAGS.map((name) => {
           const entry = STOCK_DATABASE.find((s) => s.name === name);
