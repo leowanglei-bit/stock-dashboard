@@ -14,7 +14,7 @@ interface NavbarProps {
   onIntervalChange: (ms: number) => void;
   onToggleSimulation: () => void;
   onAddBoard: () => void;
-  onResetAll: () => void;
+  onRefreshPrices: () => void;
 }
 
 export default function Navbar({
@@ -30,7 +30,7 @@ export default function Navbar({
   onIntervalChange,
   onToggleSimulation,
   onAddBoard,
-  onResetAll,
+  onRefreshPrices,
 }: NavbarProps) {
   const intervals = [
     { label: '1s', value: 1000 },
@@ -120,8 +120,8 @@ export default function Navbar({
             </svg>
           </button>
 
-          {/* 重置 */}
-          <button className={styles.iconBtn} onClick={onResetAll} title="重置所有数据">
+          {/* 手动刷新 */}
+          <button className={styles.iconBtn} onClick={onRefreshPrices} title="手动刷新行情">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
               <path d="M21 3v5h-5" />

@@ -75,7 +75,7 @@ export default function App() {
   }, [colorMode]);
 
   // Realtime prices — 绝不虚构数据
-  useRealtimePrices({
+  const { refresh: refreshPrices } = useRealtimePrices({
     _boards: boards,
     setBoards,
     intervalMs,
@@ -220,17 +220,10 @@ export default function App() {
   }, [moveStock]);
 
   // === RESET ===
-  const resetAll = useCallback(() => {
-    setModal({
-      title: '重置所有数据',
-      message: '确定要重置所有数据吗？所有板块和股票信息将被清空，恢复为默认初始状态。',
-      onConfirm: () => {
-        setBoards(INITIAL_BOARDS);
-        setModal(null);
-        toast('已重置为默认状态', 'info');
-      },
-    });
-  }, [setBoards, toast]);
+  const handleRefreshPrices = useCallback(() => {
+    refreshPrices();
+    toast('正在刷新行情...', 'info');
+  }, [refreshPrices, toast]);
 
   return (
     <div className={styles.appContainer}>
@@ -247,7 +240,7 @@ export default function App() {
         onIntervalChange={setIntervalMs}
         onToggleSimulation={toggleSimulation}
         onAddBoard={addBoard}
-        onResetAll={resetAll}
+        onRefreshPrices={handleRefreshPrices}
       />
       <div className={styles.mainContent}>
         <SectionGroup

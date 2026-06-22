@@ -16,7 +16,7 @@ export function useRealtimePrices({
   active: boolean;
   onUpdateTime?: (time: string) => void;
   onApiStatus?: (status: 'fetching' | 'ok' | 'unavailable') => void;
-}) {
+}): { refresh: () => void } {
   const fetching = useRef(false);
   // Hold latest boards in a ref so the callback doesn't stale-close
   const boardsRef = useRef(_boards);
@@ -85,4 +85,6 @@ export function useRealtimePrices({
     const timer = setInterval(tick, intervalMs);
     return () => clearInterval(timer);
   }, [active, intervalMs, tick]);
+
+  return { refresh: tick };
 }
