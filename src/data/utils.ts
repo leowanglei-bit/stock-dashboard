@@ -1,11 +1,17 @@
 import type { Stock } from '../types';
-import type { StockEntry } from './mockStocks';
+
+/** 最小的股票信息（代码 + 名称 + 市场），用于创建初始 Stock */
+export interface StockSeed {
+  code: string;
+  name: string;
+  market: Stock['market'];
+}
 
 let idCounter = 0;
 export const genId = (prefix = 'id') => `${prefix}-${++idCounter}-${Date.now()}`;
 
-/** 从 StockEntry 创建初始 Stock（含模拟价格） */
-export function entryToStock(entry: StockEntry): Stock {
+/** 从 StockSeed 创建初始 Stock（价格会被 API 覆盖） */
+export function entryToStock(entry: StockSeed): Stock {
   const basePrice = randomBasePrice(entry.market);
   const volatility = (Math.random() - 0.5) * 10;
   const price = parseFloat((basePrice * (1 + volatility / 100)).toFixed(2));

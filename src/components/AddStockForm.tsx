@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import styles from './AddStockForm.module.css';
-import { searchStocks, STOCK_DATABASE } from '../data/mockStocks';
-import type { StockEntry } from '../data/mockStocks';
+import { searchStocksApi } from '../data/sinaApi';
+import type { StockSearchResult } from '../data/sinaApi';
 import { entryToStock } from '../data/utils';
 import type { Stock } from '../types';
 
@@ -11,11 +11,12 @@ interface Props {
   onClose: () => void;
 }
 
-const HOT_TAGS = ['中际旭创', '宁德时代', '比亚迪', '贵州茅台', '中兴通讯', '中芯国际', '科大讯飞', '东方财富'];
-
 export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<StockEntry[]>([]);
+  const [results, setResults] = useState<StockSearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const doAdd = (stock: Stock) => {
@@ -23,11 +24,21 @@ export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
     onClose();
   };
 
-  const handleSearch = () => {
-    if (!query.trim()) return;
-    const r = searchStocks(query);
-    setResults(r);
-  };
+  const handleSearch = useCallback(async () => {
+    const q = query.trim();
+    if (!q) return;
+    setSearching(true);
+    setSearched(true);
+    setError('');
+    try {
+      const res = await searchStocksApi(q);
+      setResults(res);
+    } catch {
+      setResults([]);
+      setError('搜索服务不可用');
+    }
+    setSearching(false);
+  }, [query]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') handleSearch();
@@ -45,16 +56,22 @@ export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
         />
-        <button className={styles.searchBtn} onClick={handleSearch}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-          </svg>
-          查询
+        <button className={styles.searchBtn} onClick={handleSearch} disabled={searching}>
+          {searching ? (
+            <span style={{ opacity: 0.6 }}>搜索中...</span>
+          ) : (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+              </svg>
+              查询
+            </>
+          )}
         </button>
       </div>
 
-      {/* 搜索结果（非浮层，直接展示） */}
-      {results.length > 0 && (
+      {/* 搜索结果 */}
+      {searched && !searching && results.length > 0 && (
         <div className={styles.resultList}>
           {results.map((r) => (
             <button
@@ -73,68 +90,12 @@ export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
           ))}
         </div>
       )}
-      {results.length === 0 && query.trim() && (
-        <div className={styles.emptyResult}>未找到匹配的股票，请尝试手动添加</div>
+      {searched && !searching && results.length === 0 && !error && (
+        <div className={styles.emptyResult}>未找到匹配的股票</div>
       )}
-
-      {/* 手动添加 */}
-      <div className={styles.manualSection}>
-        <span className={styles.manualLabel}>手动添加（代码 + 名称）</span>
-        <ManualAddForm boardId={boardId} onAddStock={onAddStock} onClose={onClose} />
-      </div>
-
-      {/* 热门预设 */}
-      <div className={styles.presets}>
-        {HOT_TAGS.map((name) => {
-          const entry = STOCK_DATABASE.find((s) => s.name === name);
-          return entry ? (
-            <button key={entry.code} className={styles.presetBadge} onClick={() => doAdd(entryToStock(entry))}>
-              {entry.name}
-            </button>
-          ) : null;
-        })}
-      </div>
-    </div>
-  );
-}
-
-function ManualAddForm({ boardId, onAddStock, onClose }: Props) {
-  const [code, setCode] = useState('');
-  const [name, setName] = useState('');
-
-  const handleSubmit = () => {
-    if (!code.trim() || !name.trim()) return;
-    const existing = searchStocks(code.trim())[0];
-    const entry = existing || { code: code.trim(), name: name.trim(), market: 'sz' as const };
-    const stock = entryToStock(entry);
-    stock.name = name.trim();
-    onAddStock(boardId, stock);
-    onClose();
-    setCode('');
-    setName('');
-  };
-
-  return (
-    <div className={styles.manualRow}>
-      <input
-        className={styles.manualInput}
-        placeholder="代码 (如 300308)"
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
-      />
-      <input
-        className={styles.manualInput}
-        placeholder="名称 (如 中际旭创)"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-      />
-      <button className={styles.addSubmit} onClick={handleSubmit}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M5 12h14" /><path d="M12 5v14" />
-        </svg>
-        添加
-      </button>
+      {error && (
+        <div className={styles.emptyResult} style={{ color: 'var(--fall-color)' }}>{error}</div>
+      )}
     </div>
   );
 }
