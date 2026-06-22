@@ -52,9 +52,13 @@ export default function App() {
   const [apiStatus, setApiStatus] = useState<'fetching' | 'ok' | 'unavailable'>('fetching');
   const toast = useToast(setToasts);
 
-  // Drag state
-  const dragRef = useRef<{ stockId: string; boardId: string } | null>(null);
+  // Drag state — stocks
+  const stockDragRef = useRef<{ stockId: string; boardId: string } | null>(null);
   const [draggingStockId, setDraggingStockId] = useState<string | null>(null);
+
+  // Drag state — boards (move between sections)
+  const boardDragRef = useRef<string | null>(null);
+  const [_draggingBoardId, setDraggingBoardId] = useState<string | null>(null);
 
   // Apply theme
   useEffect(() => {
@@ -150,12 +154,12 @@ export default function App() {
     });
   }, [setBoards]);
 
-  // === DRAG & DROP ===
+  // === STOCK DRAG & DROP ===
   const handleDragStart = useCallback((e: React.DragEvent, stockId: string, boardId: string) => {
-    dragRef.current = { stockId, boardId };
+    stockDragRef.current = { stockId, boardId };
     setDraggingStockId(stockId);
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', JSON.stringify({ stockId, boardId }));
+    e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'stock', stockId, boardId }));
   }, []);
 
   const handleDragOverBoard = useCallback((e: React.DragEvent, _boardId: string) => {
@@ -181,7 +185,6 @@ export default function App() {
       let newToStocks: Stock[];
 
       if (fromBoardId === toBoardId) {
-        // Same board reorder
         const without = fromBoard.stocks.filter((s) => s.id !== stockId);
         if (!targetStockId) {
           newToStocks = [...without, stock];
@@ -193,7 +196,6 @@ export default function App() {
         }
         return { ...prev, [toBoardId]: { ...toBoard, stocks: newToStocks } };
       } else {
-        // Cross-board move
         if (!targetStockId) {
           newToStocks = [...toBoard.stocks, stock];
         } else {
@@ -210,9 +212,9 @@ export default function App() {
   const handleDropOnBoard = useCallback((e: React.DragEvent, boardId: string) => {
     e.preventDefault();
     setDraggingStockId(null);
-    const data = dragRef.current;
+    const data = stockDragRef.current;
     if (!data) return;
-    dragRef.current = null;
+    stockDragRef.current = null;
     if (data.boardId !== boardId) {
       moveStock(data.stockId, data.boardId, boardId);
       toast('已移动股票', 'info');
@@ -222,11 +224,62 @@ export default function App() {
   const handleDropOnStock = useCallback((e: React.DragEvent, targetStockId: string, boardId: string) => {
     e.preventDefault();
     setDraggingStockId(null);
-    const data = dragRef.current;
+    const data = stockDragRef.current;
     if (!data) return;
-    dragRef.current = null;
+    stockDragRef.current = null;
     moveStock(data.stockId, data.boardId, boardId, targetStockId);
   }, [moveStock]);
+
+  // === BOARD DRAG & DROP (between sections) ===
+  const handleBoardDragStart = useCallback((e: React.DragEvent, boardId: string) => {
+    boardDragRef.current = boardId;
+    setDraggingBoardId(boardId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'board', boardId }));
+  }, []);
+
+  const moveBoardToSection = useCallback((boardId: string, targetSectionId: string | null) => {
+    setSections((prev) => {
+      return prev.map((s) => {
+        // If this is the target section, add the board if not already there
+        if (s.id === targetSectionId) {
+          if (s.boards.includes(boardId)) return s;
+          return { ...s, boards: [...s.boards, boardId] };
+        }
+        // Remove from all other sections (moving to a section = remove from others)
+        if (s.boards.includes(boardId)) {
+          return { ...s, boards: s.boards.filter((bid) => bid !== boardId) };
+        }
+        return s;
+      });
+    });
+    toast('已移动板块', 'info');
+  }, [setSections, toast]);
+
+  const handleBoardDropOnSection = useCallback((e: React.DragEvent, sectionId: string) => {
+    e.preventDefault();
+    setDraggingBoardId(null);
+    const bid = boardDragRef.current;
+    if (!bid) return;
+    boardDragRef.current = null;
+    moveBoardToSection(bid, sectionId);
+  }, [moveBoardToSection]);
+
+  const handleBoardDropOnUngrouped = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDraggingBoardId(null);
+    const bid = boardDragRef.current;
+    if (!bid) return;
+    boardDragRef.current = null;
+    // Remove board from all sections → it becomes ungrouped
+    setSections((prev) =>
+      prev.map((s) => ({
+        ...s,
+        boards: s.boards.filter((b) => b !== bid),
+      }))
+    );
+    toast('已移出分组', 'info');
+  }, [setSections, toast]);
 
   // === SECTION OPERATIONS ===
   const addSection = useCallback(() => {
@@ -307,6 +360,9 @@ export default function App() {
           onDragOverStock={handleDragOverStock}
           onDropOnBoard={handleDropOnBoard}
           onDropOnStock={handleDropOnStock}
+          onBoardDragStart={handleBoardDragStart}
+          onBoardDropOnSection={handleBoardDropOnSection}
+          onBoardDropOnUngrouped={handleBoardDropOnUngrouped}
           onAddSection={addSection}
         />
       </div>

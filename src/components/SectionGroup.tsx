@@ -19,6 +19,9 @@ interface Props {
   onDragOverStock: (e: React.DragEvent, stockId: string, boardId: string) => void;
   onDropOnBoard: (e: React.DragEvent, boardId: string) => void;
   onDropOnStock: (e: React.DragEvent, targetStockId: string, boardId: string) => void;
+  onBoardDragStart: (e: React.DragEvent, boardId: string) => void;
+  onBoardDropOnSection: (e: React.DragEvent, sectionId: string) => void;
+  onBoardDropOnUngrouped: (e: React.DragEvent) => void;
   onAddSection: () => void;
 }
 
@@ -38,11 +41,16 @@ export default function SectionGroup({
   onDragOverStock,
   onDropOnBoard,
   onDropOnStock,
+  onBoardDragStart,
+  onBoardDropOnSection,
+  onBoardDropOnUngrouped,
   onAddSection,
 }: Props) {
-  // Collect ungrouped board IDs (not in any section)
   const allSectionBoardIds = new Set(sections.flatMap((s) => s.boards));
   const ungroupedBoardIds = Object.keys(boards).filter((id) => !allSectionBoardIds.has(id));
+
+  const [dragOverSectionId, setDragOverSectionId] = useState<string | null>(null);
+  const [dragOverUngrouped, setDragOverUngrouped] = useState(false);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -65,6 +73,8 @@ export default function SectionGroup({
             boards={sectionBoards}
             avgChange={avgChange}
             draggingStockId={draggingStockId}
+            dragOverSectionId={dragOverSectionId}
+            onSetDragOverSectionId={setDragOverSectionId}
             onRenameSection={onRenameSection}
             onDeleteSection={onDeleteSection}
             onToggleCollapse={onToggleCollapse}
@@ -77,13 +87,20 @@ export default function SectionGroup({
             onDragOverStock={onDragOverStock}
             onDropOnBoard={onDropOnBoard}
             onDropOnStock={onDropOnStock}
+            onBoardDragStart={onBoardDragStart}
+            onBoardDropOnSection={onBoardDropOnSection}
           />
         );
       })}
 
       {/* Ungrouped Boards */}
       {ungroupedBoardIds.length > 0 && (
-        <div className={styles.ungroupedArea}>
+        <div
+          className={`${styles.ungroupedArea} ${dragOverUngrouped ? styles.dropActive : ''}`}
+          onDragOver={(e) => { e.preventDefault(); setDragOverUngrouped(true); }}
+          onDragLeave={() => setDragOverUngrouped(false)}
+          onDrop={(e) => { setDragOverUngrouped(false); onBoardDropOnUngrouped(e); }}
+        >
           <div className={styles.ungroupedTitle}>未分组板块</div>
           <div className={styles.ungroupedBoards}>
             {ungroupedBoardIds.map((bid) => {
@@ -103,6 +120,7 @@ export default function SectionGroup({
                   onDragOverStock={onDragOverStock}
                   onDropOnBoard={onDropOnBoard}
                   onDropOnStock={onDropOnStock}
+                  onBoardDragStart={onBoardDragStart}
                 />
               );
             })}
@@ -127,6 +145,8 @@ function SectionRow({
   boards,
   avgChange,
   draggingStockId,
+  dragOverSectionId,
+  onSetDragOverSectionId,
   onRenameSection,
   onDeleteSection,
   onToggleCollapse,
@@ -139,11 +159,15 @@ function SectionRow({
   onDragOverStock,
   onDropOnBoard,
   onDropOnStock,
+  onBoardDragStart,
+  onBoardDropOnSection,
 }: {
   section: Section;
   boards: Board[];
   avgChange: number | null;
   draggingStockId: string | null;
+  dragOverSectionId: string | null;
+  onSetDragOverSectionId: (id: string | null) => void;
   onRenameSection: (sectionId: string, title: string) => void;
   onDeleteSection: (sectionId: string) => void;
   onToggleCollapse: (sectionId: string) => void;
@@ -156,6 +180,8 @@ function SectionRow({
   onDragOverStock: (e: React.DragEvent, stockId: string, boardId: string) => void;
   onDropOnBoard: (e: React.DragEvent, boardId: string) => void;
   onDropOnStock: (e: React.DragEvent, targetStockId: string, boardId: string) => void;
+  onBoardDragStart: (e: React.DragEvent, boardId: string) => void;
+  onBoardDropOnSection: (e: React.DragEvent, sectionId: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(section.title);
@@ -167,9 +193,16 @@ function SectionRow({
     setEditing(false);
   };
 
+  const isOver = dragOverSectionId === section.id;
+
   return (
     <div className={`${styles.section} ${section.collapsed ? styles.collapsed : ''}`}>
-      <div className={styles.sectionHeader}>
+      <div
+        className={`${styles.sectionHeader} ${isOver ? styles.sectionHeaderDropTarget : ''}`}
+        onDragOver={(e) => { e.preventDefault(); onSetDragOverSectionId(section.id); }}
+        onDragLeave={() => onSetDragOverSectionId(null)}
+        onDrop={(e) => { onSetDragOverSectionId(null); onBoardDropOnSection(e, section.id); }}
+      >
         <div className={styles.headerLeft}>
           {editing ? (
             <input
@@ -236,6 +269,7 @@ function SectionRow({
               onDragOverStock={onDragOverStock}
               onDropOnBoard={onDropOnBoard}
               onDropOnStock={onDropOnStock}
+              onBoardDragStart={onBoardDragStart}
             />
           ))}
         </div>
