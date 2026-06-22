@@ -94,6 +94,7 @@ const BUILT_IN_DB: StockSearchItem[] = BUILT_IN.map(([code, name, m]) => ({ code
 
 // ───── 缓存管理 ─────
 const CACHE_KEY = 'stock_search_db_v1';
+const CACHE_TIME_KEY = 'stock_search_db_updated';
 
 function loadCache(): StockSearchItem[] | null {
   try {
@@ -105,7 +106,20 @@ function loadCache(): StockSearchItem[] | null {
 }
 
 function saveCache(data: StockSearchItem[]) {
-  try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch { /* quota */ }
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+    localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+  } catch { /* quota */ }
+}
+
+/** 检查是否到每周更新时间 */
+function shouldRefresh(): boolean {
+  try {
+    const last = localStorage.getItem(CACHE_TIME_KEY);
+    if (!last) return true;
+    const elapsed = Date.now() - parseInt(last, 10);
+    return elapsed > 7 * 24 * 60 * 60 * 1000; // 7 天
+  } catch { return true; }
 }
 
 // ───── API 获取全量股票（新浪市场中心） ─────
@@ -177,13 +191,13 @@ export function searchStocksLocal(query: string): StockSearchItem[] {
   return results.slice(0, 20);
 }
 
-/** 尝试从 API 拉取全量数据并缓存 */
+/** 每周尝试从 API 拉取全量数据并缓存 */
 export function tryRefreshStockDB() {
+  if (!shouldRefresh()) return;
   fetchAllStocksFromAPI().then((data) => {
     if (data) {
       cachedFull = data;
       saveCache(data);
-      console.log(`[stockDB] 已更新：${data.length} 只股票`);
     }
   }).catch(() => {});
 }
