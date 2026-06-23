@@ -20,6 +20,15 @@
           "name": "紫金矿业",
           "prevClose": 30.44,
           "price": 29.95
+        },
+        {
+          "id": "stk-1-1782178143300",
+          "code": "300502",
+          "name": "新易盛",
+          "market": "sz",
+          "price": 67.91,
+          "prevClose": 67.91,
+          "changePercent": 0
         }
       ],
       "title": "新板块 1"
