@@ -9,6 +9,18 @@ import { compress, expand } from './boardsCompress';
 
 const TABLE = 'boards_data';
 
+/** 获取或创建用户标识（localStorage 持久化，用于 RLS 隔离） */
+export function getUserId(): string {
+  try {
+    let uid = localStorage.getItem('stock_user_id');
+    if (!uid) {
+      uid = crypto.randomUUID?.() || 'user-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+      localStorage.setItem('stock_user_id', uid);
+    }
+    return uid;
+  } catch { return 'anonymous'; }
+}
+
 export interface ServerData {
   boards: Record<string, any>;
   boardOrder: string[];
@@ -48,14 +60,22 @@ async function doSave(data: ServerData): Promise<boolean> {
   } catch { return false; }
 }
 
-/** 保存（防抖 2 秒） */
-export function saveToServer(data: ServerData) {
-  if (!isSupabaseConfigured) return;
+/** 保存到 Supabase（防抖 2 秒），返回是否成功 */
+export function saveToServer(data: ServerData): Promise<boolean> {
+  if (!isSupabaseConfigured) return Promise.resolve(false);
   pendingData = data;
   if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(async () => {
-    if (pendingData) { const ok = await doSave(pendingData); pendingData = null; return ok; }
-  }, 2000);
+  return new Promise((resolve) => {
+    saveTimer = setTimeout(async () => {
+      if (pendingData) {
+        const ok = await doSave(pendingData);
+        pendingData = null;
+        resolve(ok);
+      } else {
+        resolve(false);
+      }
+    }, 2000);
+  });
 }
 
 /** 判断是否启用服务端模式 */

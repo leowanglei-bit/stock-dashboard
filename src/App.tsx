@@ -36,20 +36,16 @@ export default function App() {
 
   // 判断是否启用服务端模式（GitHub Pages 构建时注入 token）
   const serverMode = isServerMode();
-  const serverLoadedRef = useRef(false);
 
   useEffect(() => {
     if (serverMode) {
       loadFromServer().then((data) => {
-        serverLoadedRef.current = true;
         if (data && Object.keys(data.boards).length > 0) {
           setBoards(data.boards as Record<string, Board>);
           if (data.boardOrder?.length > 0) setBoardOrder(data.boardOrder);
           toast('已从云端加载数据', 'info');
         }
       });
-    } else {
-      serverLoadedRef.current = true;
     }
   }, []); // eslint-disable-line
 
@@ -88,17 +84,8 @@ export default function App() {
   // === 云端同步 ===
   const handleUploadData = useCallback(async () => {
     if (!serverMode) { toast('服务端未配置，数据仅存本地', 'error'); return; }
-    const clean: Record<string, Board> = {};
-    for (const [id, b] of Object.entries(boards)) {
-      clean[id] = { ...b, stocks: b.stocks.map((s) => ({
-        id: s.id, code: s.code, name: s.name, market: s.market,
-        price: 0, prevClose: 0, changePercent: 0,
-      })) } as Board;
-    }
-    saveToServer({ boards: clean, boardOrder });
-    toast('数据上传中（2秒内完成）', 'info');
-    // 2 秒后假定完成（无回调）
-    setTimeout(() => toast('上传完成', 'success'), 3000);
+    const ok = await saveToServer({ boards, boardOrder });
+    toast(ok ? '数据已上传至云端' : '上传失败，请重试', ok ? 'success' : 'error');
   }, [serverMode, boards, boardOrder, toast]);
 
   const handleDownloadData = useCallback(async () => {
