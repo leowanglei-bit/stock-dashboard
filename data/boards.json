@@ -38,12 +38,37 @@
           "price": 320.79,
           "prevClose": 326.12,
           "changePercent": -1.63
+        },
+        {
+          "id": "stk-1-1782181916587",
+          "code": "603629",
+          "name": "利通电子",
+          "market": "sh",
+          "price": 201.64,
+          "prevClose": 194.24,
+          "changePercent": 3.81
         }
       ],
       "title": "新板块 1"
+    },
+    "brd-2-1782181930820": {
+      "id": "brd-2-1782181930820",
+      "title": "新板块 2",
+      "stocks": [
+        {
+          "id": "stk-3-1782181939785",
+          "code": "600519",
+          "name": "贵州茅台",
+          "market": "sh",
+          "price": 1230.66,
+          "prevClose": 1241.41,
+          "changePercent": -0.87
+        }
+      ]
     }
   },
   "boardOrder": [
+    "brd-2-1782181930820",
     "brd-1-1782124680847"
   ]
 }
