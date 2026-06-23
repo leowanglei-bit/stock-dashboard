@@ -91,8 +91,8 @@ export default function App() {
   // === 云端同步 ===
   const handleUploadData = useCallback(async () => {
     if (!serverMode) { toast('服务端未配置，数据仅存本地', 'error'); return; }
-    const ok = await saveToServer({ boards, boardOrder });
-    toast(ok ? '数据已上传至云端' : '上传失败，请重试', ok ? 'success' : 'error');
+    const errMsg = await saveToServer({ boards, boardOrder });
+    toast(errMsg ? `上传失败: ${errMsg}` : '数据已上传至云端', errMsg ? 'error' : 'success');
   }, [serverMode, boards, boardOrder, toast]);
 
   const handleDownloadData = useCallback(async () => {
