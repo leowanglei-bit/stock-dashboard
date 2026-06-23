@@ -49,6 +49,13 @@ export default function App() {
     }
   }, []); // eslint-disable-line
 
+  // 自动保存到 Supabase（数据变化时防抖保存）
+  useEffect(() => {
+    if (serverMode && Object.keys(boards).length > 0) {
+      saveToServer({ boards, boardOrder });
+    }
+  }, [boards, boardOrder, serverMode]);
+
   // 同步 boardOrder 和 boards（新增板块自动加入末尾，删除的自动移除）
   useEffect(() => {
     setBoardOrder((prev) => {
