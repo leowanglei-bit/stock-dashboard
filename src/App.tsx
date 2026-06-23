@@ -46,10 +46,10 @@ export default function App() {
         if (data && Object.keys(data.boards).length > 0) {
           setBoards(data.boards as Record<string, Board>);
           if (data.boardOrder?.length > 0) setBoardOrder(data.boardOrder);
+          toast('已从云端加载数据', 'info');
         }
       });
     } else {
-      // 非服务端模式直接允许保存
       serverLoadedRef.current = true;
     }
   }, []); // eslint-disable-line
