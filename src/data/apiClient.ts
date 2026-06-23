@@ -26,7 +26,7 @@ export async function loadFromServer(): Promise<ServerData | null> {
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingData: ServerData | null = null;
-let pendingResolves: Array<(ok: boolean) => void> = [];
+let pendingResolves: Array<(msg: string) => void> = [];
 
 async function doSave(data: ServerData): Promise<{ ok: boolean; msg: string }> {
   if (!isSupabaseConfigured) return { ok: false, msg: 'Supabase 未配置' };
