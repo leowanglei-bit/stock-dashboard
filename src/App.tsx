@@ -37,10 +37,12 @@ export default function App() {
 
   // 判断是否启用服务端模式（GitHub Pages 构建时注入 token）
   const serverMode = isServerMode();
+  const serverLoadedRef = useRef(false);
 
   useEffect(() => {
     if (serverMode) {
       loadFromServer().then((data) => {
+        serverLoadedRef.current = true;
         if (data && Object.keys(data.boards).length > 0) {
           setBoards(data.boards as Record<string, Board>);
           if (data.boardOrder?.length > 0) setBoardOrder(data.boardOrder);
@@ -49,12 +51,12 @@ export default function App() {
     }
   }, []); // eslint-disable-line
 
-  // 数据变化时自动保存到 GitHub
+  // 数据变化时自动保存到 GitHub（仅当已从服务端加载过后才保存，避免用空数据覆盖云端）
   useEffect(() => {
-    if (serverMode) {
+    if (serverMode && serverLoadedRef.current) {
       saveToServer({ boards, boardOrder });
     }
-  }, [boards, boardOrder, serverMode]);
+  }, [boards, boardOrder]);
 
   // 同步 boardOrder 和 boards（新增板块自动加入末尾，删除的自动移除）
   useEffect(() => {
