@@ -14,6 +14,8 @@ interface NavbarProps {
   onToggleSimulation: () => void;
   onAddBoard: () => void;
   onRefreshPrices: () => void;
+  onUploadData: () => void;
+  onDownloadData: () => void;
 }
 
 export default function Navbar({
@@ -29,6 +31,8 @@ export default function Navbar({
   onToggleSimulation,
   onAddBoard,
   onRefreshPrices,
+  onUploadData,
+  onDownloadData,
 }: NavbarProps) {
   const intervals = [
     { label: '1s', value: 1000 },
@@ -118,7 +122,25 @@ export default function Navbar({
             </svg>
           </button>
 
-          {/* 手动刷新 */}
+          {/* 从云端下载 */}
+          <button className={styles.iconBtn} onClick={onDownloadData} title="从云端下载数据">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </button>
+
+          {/* 上传到云端 */}
+          <button className={styles.iconBtn} onClick={onUploadData} title="上传数据到云端">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+          </button>
+
+          {/* 手动刷新行情 */}
           <button className={styles.iconBtn} onClick={onRefreshPrices} title="手动刷新行情">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />

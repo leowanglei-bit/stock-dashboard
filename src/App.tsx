@@ -54,29 +54,6 @@ export default function App() {
     }
   }, []); // eslint-disable-line
 
-  // 数据变化时自动保存到 GitHub（仅存基本结构，不存实时价格）
-  useEffect(() => {
-    if (serverMode && serverLoadedRef.current) {
-      // 去掉价格信息，只存代码+名称+市场
-      const clean: Record<string, Board> = {};
-      for (const [id, b] of Object.entries(boards)) {
-        clean[id] = {
-          ...b,
-          stocks: b.stocks.map((s) => ({
-            id: s.id,
-            code: s.code,
-            name: s.name,
-            market: s.market,
-            price: 0,
-            prevClose: 0,
-            changePercent: 0,
-          })),
-        } as Board;
-      }
-      saveToServer({ boards: clean, boardOrder });
-    }
-  }, [boards, boardOrder]);
-
   // 同步 boardOrder 和 boards（新增板块自动加入末尾，删除的自动移除）
   useEffect(() => {
     setBoardOrder((prev) => {
@@ -114,12 +91,34 @@ export default function App() {
     onApiStatus: setApiStatus,
   });
 
-  // === SAVE 提示 ===
-  useEffect(() => {
-    if (serverMode && Object.keys(boards).length > 0) {
-      toast('数据已同步至云端', 'info');
+  // === 云端同步 ===
+  const handleUploadData = useCallback(async () => {
+    if (!serverMode) { toast('无法连接服务端', 'error'); return; }
+    const clean: Record<string, Board> = {};
+    for (const [id, b] of Object.entries(boards)) {
+      clean[id] = {
+        ...b,
+        stocks: b.stocks.map((s) => ({
+          id: s.id, code: s.code, name: s.name, market: s.market,
+          price: 0, prevClose: 0, changePercent: 0,
+        })),
+      } as Board;
     }
-  }, [serverMode]); // eslint-disable-line
+    saveToServer({ boards: clean, boardOrder });
+    toast('正在上传数据...', 'info');
+  }, [serverMode, boards, boardOrder, toast]);
+
+  const handleDownloadData = useCallback(async () => {
+    if (!serverMode) { toast('无法连接服务端', 'error'); return; }
+    const data = await loadFromServer();
+    if (data && Object.keys(data.boards).length > 0) {
+      setBoards(data.boards as Record<string, Board>);
+      if (data.boardOrder?.length > 0) setBoardOrder(data.boardOrder);
+      toast('已从云端下载数据', 'success');
+    } else {
+      toast('云端暂无数据', 'info');
+    }
+  }, [serverMode, setBoards, setBoardOrder, toast]);
 
   const toggleTheme = useCallback(() => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
@@ -315,6 +314,8 @@ export default function App() {
         onToggleSimulation={toggleSimulation}
         onAddBoard={addBoard}
         onRefreshPrices={handleRefreshPrices}
+        onUploadData={handleUploadData}
+        onDownloadData={handleDownloadData}
       />
       <div className={styles.mainContent}>
         <SectionGroup
