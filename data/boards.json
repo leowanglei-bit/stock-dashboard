@@ -4,71 +4,46 @@
       "id": "brd-1-1782124680847",
       "stocks": [
         {
-          "changePercent": 0.05,
+          "changePercent": 0.21,
           "code": "600036",
           "id": "stk-2-1782124686173",
           "market": "sh",
           "name": "招商银行",
           "prevClose": 37.65,
-          "price": 37.67
+          "price": 37.73
         },
         {
-          "changePercent": -5.95,
+          "changePercent": -6.04,
           "code": "601899",
           "id": "stk-1-1782177405889",
           "market": "sh",
           "name": "紫金矿业",
           "prevClose": 30.44,
-          "price": 28.63
+          "price": 28.6
         },
         {
           "id": "stk-1-1782178143300",
           "code": "300502",
           "name": "新易盛",
           "market": "sz",
-          "price": 576,
+          "price": 573.8,
           "prevClose": 579.97,
-          "changePercent": -0.68
+          "changePercent": -1.06
         },
         {
           "id": "stk-1-1782180946509",
           "code": "300394",
           "name": "天孚通信",
           "market": "sz",
-          "price": 320.36,
+          "price": 319.8,
           "prevClose": 326.12,
-          "changePercent": -1.77
-        },
-        {
-          "id": "stk-1-1782181916587",
-          "code": "603629",
-          "name": "利通电子",
-          "market": "sh",
-          "price": 201.36,
-          "prevClose": 194.24,
-          "changePercent": 3.67
+          "changePercent": -1.94
         }
       ],
       "title": "新板块 1"
-    },
-    "brd-2-1782181930820": {
-      "id": "brd-2-1782181930820",
-      "title": "新板块 2",
-      "stocks": [
-        {
-          "id": "stk-3-1782181939785",
-          "code": "600519",
-          "name": "贵州茅台",
-          "market": "sh",
-          "price": 1228.88,
-          "prevClose": 1241.41,
-          "changePercent": -1.01
-        }
-      ]
     }
   },
   "boardOrder": [
-    "brd-2-1782181930820",
     "brd-1-1782124680847"
   ]
 }
