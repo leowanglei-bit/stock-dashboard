@@ -1,21 +1,66 @@
 /**
  * 服务端持久化 — GitHub Repository API
- * Token 在构建时通过 VITE_GH_TOKEN 注入，用户无感
- * 本地开发时 token 为空，回退 localStorage
+ * 数据以压缩格式存储（去掉冗余字段），加载时自动展开
  */
-
-import type { Board } from '../types';
 
 const OWNER = 'leowanglei-bit';
 const REPO = 'stock-dashboard';
 const FILE_PATH = 'data/boards.json';
 
+const M_NUM: Record<string, number> = { sh: 0, sz: 1, chinext: 2, star: 3, bse: 4 };
+const M_STR: Record<number, string> = { 0: 'sh', 1: 'sz', 2: 'chinext', 3: 'star', 4: 'bse' };
+
 export interface ServerData {
-  boards: Record<string, Board>;
+  boards: Record<string, any>;
   boardOrder: string[];
 }
 
-// 构建时注入的 token（Vite 暴露 import.meta.env.VITE_*）
+// ───── 压缩 / 展开 ─────
+
+/** 压缩：完整格式 → 紧凑格式（去掉价格、缩短字段名） */
+export function compress(boards: Record<string, any>, boardOrder: string[]): any {
+  const b: any = {};
+  for (const [id, board] of Object.entries(boards)) {
+    b[id] = {
+      t: board.title,
+      s: board.stocks.map((s: any) => ({
+        id: s.id,
+        c: s.code,
+        n: s.name,
+        m: M_NUM[s.market] ?? 0,
+      })),
+    };
+  }
+  return { b, o: boardOrder };
+}
+
+/** 展开：紧凑格式 → 完整格式（补全价格字段为 0、恢复字段名） */
+export function expand(data: any): ServerData {
+  const rawBoards = data.b || data.boards || {};
+  const rawOrder = data.o || data.boardOrder || [];
+
+  const boards: Record<string, any> = {};
+  for (const [id, board] of Object.entries(rawBoards)) {
+    const b = board as any;
+    boards[id] = {
+      id,
+      title: b.t || b.title || '',
+      stocks: (b.s || b.stocks || []).map((s: any) => ({
+        id: s.id || ('stk-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6)),
+        code: s.c || s.code || '',
+        name: s.n || s.name || '',
+        market: M_STR[typeof s.m === 'number' ? s.m : M_NUM[s.market] ?? 0] || 'sh',
+        price: 0,
+        prevClose: 0,
+        changePercent: 0,
+      })),
+    };
+  }
+  return { boards, boardOrder: rawOrder };
+}
+
+// ───── GitHub API ─────
+
 const GH_TOKEN = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GH_TOKEN) as string || '';
 
 function authHeaders(): Record<string, string> {
@@ -26,28 +71,27 @@ function authHeaders(): Record<string, string> {
 
 let fileSha: string | null = null;
 
-/** 从 GitHub 读取 boards.json */
+/** 从 GitHub 读取 boards.json（自动展开） */
 export async function loadFromServer(): Promise<ServerData | null> {
-  // 先试 raw（无认证，但读取最新提交的数据）
   try {
     const rawUrl = `https://raw.githubusercontent.com/${OWNER}/${REPO}/main/${FILE_PATH}`;
     const rawRes = await fetch(rawUrl, { signal: AbortSignal.timeout(5000) });
     if (rawRes.ok) {
       const data = await rawRes.json();
-      if (data && data.boards) return data;
+      if (data && (data.b || data.boards)) return expand(data);
     }
   } catch {}
 
-  // 再试 API（需 token）
   if (!GH_TOKEN) return null;
   try {
     const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`;
     const res = await fetch(url, { headers: authHeaders(), signal: AbortSignal.timeout(5000) });
     if (!res.ok) return null;
-    const data = await res.json();
-    fileSha = data.sha;
-    const decoded = decodeURIComponent(escape(atob(data.content)));
-    return JSON.parse(decoded);
+    const meta = await res.json();
+    fileSha = meta.sha;
+    const decoded = decodeURIComponent(escape(atob(meta.content)));
+    const data = JSON.parse(decoded);
+    return expand(data);
   } catch { return null; }
 }
 
@@ -56,7 +100,9 @@ let pendingData: ServerData | null = null;
 
 async function doSave(data: ServerData): Promise<boolean> {
   if (!GH_TOKEN) return false;
-  const json = JSON.stringify(data, null, 2);
+  // 压缩后保存
+  const compressed = compress(data.boards, data.boardOrder);
+  const json = JSON.stringify(compressed);
   const content = btoa(unescape(encodeURIComponent(json)));
 
   try {
@@ -87,7 +133,7 @@ async function doSave(data: ServerData): Promise<boolean> {
   } catch { return false; }
 }
 
-/** 保存到 GitHub（防抖 2 秒） */
+/** 保存到 GitHub（防抖 2 秒，自动压缩） */
 export function saveToServer(data: ServerData) {
   if (!GH_TOKEN) return;
   pendingData = data;
@@ -97,7 +143,6 @@ export function saveToServer(data: ServerData) {
   }, 2000);
 }
 
-/** 判断当前是否使用服务端模式 */
 export function isServerMode(): boolean {
   return GH_TOKEN.length > 0;
 }
