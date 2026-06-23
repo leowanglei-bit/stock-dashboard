@@ -13,31 +13,31 @@
           "price": 37.82
         },
         {
-          "changePercent": -5.65,
+          "changePercent": -5.72,
           "code": "601899",
           "id": "stk-1-1782177405889",
           "market": "sh",
           "name": "紫金矿业",
           "prevClose": 30.44,
-          "price": 28.72
+          "price": 28.7
         },
         {
           "id": "stk-1-1782178143300",
           "code": "300502",
           "name": "新易盛",
           "market": "sz",
-          "price": 566.06,
+          "price": 566.61,
           "prevClose": 579.97,
-          "changePercent": -2.4
+          "changePercent": -2.3
         },
         {
           "id": "stk-1-1782180946509",
           "code": "300394",
           "name": "天孚通信",
           "market": "sz",
-          "price": 313.03,
+          "price": 313.32,
           "prevClose": 326.12,
-          "changePercent": -4.01
+          "changePercent": -3.92
         }
       ],
       "title": "新板块 1"
