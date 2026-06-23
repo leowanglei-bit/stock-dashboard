@@ -26,27 +26,27 @@
           "code": "300502",
           "name": "新易盛",
           "market": "sz",
-          "price": 575.5,
+          "price": 575.42,
           "prevClose": 579.97,
-          "changePercent": -0.77
+          "changePercent": -0.78
         },
         {
           "id": "stk-1-1782180946509",
           "code": "300394",
           "name": "天孚通信",
           "market": "sz",
-          "price": 320.79,
+          "price": 320.78,
           "prevClose": 326.12,
-          "changePercent": -1.63
+          "changePercent": -1.64
         },
         {
           "id": "stk-1-1782181916587",
           "code": "603629",
           "name": "利通电子",
           "market": "sh",
-          "price": 57.67,
-          "prevClose": 57.67,
-          "changePercent": 0
+          "price": 201.97,
+          "prevClose": 194.24,
+          "changePercent": 3.98
         }
       ],
       "title": "新板块 1"
