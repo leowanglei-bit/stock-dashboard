@@ -46,7 +46,7 @@
   .footerSep {
     display: none;
   }
-  .footer span {
+  .footerText {
     display: block;
   }
 }

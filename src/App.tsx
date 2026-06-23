@@ -346,9 +346,9 @@ export default function App() {
         />
       </div>
       <div className={styles.footer}>
-        <span>心有灵犀 谈笑间 众生皆有回响</span>
+        <span className={styles.footerText}>心有灵犀 谈笑间 众生皆有回响</span>
         <span className={styles.footerSep}> ｜ </span>
-        <span>味归平淡 静思处 乾坤尽纳一盏</span>
+        <span className={styles.footerText}>味归平淡 静思处 乾坤尽纳一盏</span>
       </div>
       <ToastContainer toasts={toasts} />
       {modal && (
