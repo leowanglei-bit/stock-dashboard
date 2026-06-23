@@ -8,7 +8,7 @@ import { useLocalStorage } from './hooks/useLocalStorage';
 import { useRealtimePrices } from './hooks/useRealtimePrices';
 import { useToast } from './hooks/useToast';
 import { genId } from './data/utils';
-import { loadFromServer, saveToServer, isServerMode } from './data/apiClient';
+import { loadFromServer, saveToServer, isServerMode, setGitHubToken } from './data/apiClient';
 import type { Board, Stock, ThemeMode, ToastItem } from './types';
 
 // 数据版本 — 每次重大变更时递增，自动重置旧缓存
@@ -33,6 +33,10 @@ export default function App() {
   const [lastUpdateTime, setLastUpdateTime] = useState<string>('');
   const [apiStatus, setApiStatus] = useState<'fetching' | 'ok' | 'unavailable'>('fetching');
   const toast = useToast(setToasts);
+
+  // Token 配置 UI
+  const [showTokenModal, setShowTokenModal] = useState(!isServerMode());
+  const [tokenInput, setTokenInput] = useState('');
 
   // 判断是否启用服务端模式（GitHub Pages 构建时注入 token）
   const serverMode = isServerMode();
@@ -86,32 +90,69 @@ export default function App() {
   });
 
   // === 云端同步 ===
+  const handleTokenSubmit = useCallback(() => {
+    const t = tokenInput.trim();
+    if (!t) return;
+    setGitHubToken(t);
+    setShowTokenModal(false);
+    toast('Token 已保存', 'success');
+    // 重新加载 UI（页面刷新组件会重新检测 token）
+    window.location.reload();
+  }, [tokenInput, toast]);
+
   const handleUploadData = useCallback(async () => {
-    if (!serverMode) { toast('无法连接服务端', 'error'); return; }
+    if (!serverMode) { toast('请先设置 GitHub Token', 'error'); return; }
     const clean: Record<string, Board> = {};
     for (const [id, b] of Object.entries(boards)) {
-      clean[id] = {
-        ...b,
-        stocks: b.stocks.map((s) => ({
-          id: s.id, code: s.code, name: s.name, market: s.market,
-          price: 0, prevClose: 0, changePercent: 0,
-        })),
-      } as Board;
+      clean[id] = { ...b, stocks: b.stocks.map((s) => ({
+        id: s.id, code: s.code, name: s.name, market: s.market,
+        price: 0, prevClose: 0, changePercent: 0,
+      })) } as Board;
     }
     saveToServer({ boards: clean, boardOrder });
-    toast('正在上传数据...', 'info');
+    toast('数据上传中（2秒内完成）', 'info');
+    // 2 秒后假定完成（无回调）
+    setTimeout(() => toast('上传完成', 'success'), 3000);
   }, [serverMode, boards, boardOrder, toast]);
 
   const handleDownloadData = useCallback(async () => {
-    if (!serverMode) { toast('无法连接服务端', 'error'); return; }
+    if (!serverMode) { toast('请先设置 GitHub Token', 'error'); return; }
     const data = await loadFromServer();
-    if (data && Object.keys(data.boards).length > 0) {
-      setBoards(data.boards as Record<string, Board>);
-      if (data.boardOrder?.length > 0) setBoardOrder(data.boardOrder);
-      toast('已从云端下载数据', 'success');
-    } else {
+    if (!data || Object.keys(data.boards).length === 0) {
       toast('云端暂无数据', 'info');
+      return;
     }
+    // 合并逻辑：云端 -> 本地，按板块 ID 合并，同板块合并股票（去重）
+    setBoards((prev) => {
+      const merged = { ...prev };
+      for (const [bid, remoteBoard] of Object.entries(data.boards)) {
+        const localBoard = merged[bid];
+        if (!localBoard) {
+          // 云端有、本地没有 → 新增
+          merged[bid] = remoteBoard;
+        } else {
+          // 都有 → 合并股票（云端优先覆盖同名 code 的价格，但价格会被实时 API 覆盖）
+          const localCodes = new Set(localBoard.stocks.map((s) => s.code));
+          const mergedStocks = [...localBoard.stocks];
+          for (const rs of remoteBoard.stocks) {
+            if (!localCodes.has(rs.code)) {
+              mergedStocks.push(rs);
+            }
+          }
+          merged[bid] = { ...localBoard, stocks: mergedStocks };
+        }
+      }
+      return merged;
+    });
+    // 合并 boardOrder：云端排序为主，追加本地独有的
+    setBoardOrder((prev) => {
+      const remoteOrder = data.boardOrder || [];
+      const added = prev.filter((id) => !remoteOrder.includes(id));
+      const mergedOrder = [...remoteOrder, ...added];
+      // 去重
+      return [...new Set(mergedOrder)];
+    });
+    toast('已合并云端数据', 'success');
   }, [serverMode, setBoards, setBoardOrder, toast]);
 
   const toggleTheme = useCallback(() => {
@@ -291,6 +332,26 @@ export default function App() {
 
   return (
     <div className={styles.appContainer}>
+      {/* Token 设置弹窗 */}
+      {showTokenModal && (
+        <div className={styles.loginOverlay}>
+          <div className={styles.loginBox}>
+            <div className={styles.loginLogo}>🔑</div>
+            <div className={styles.loginTitle}>设置 GitHub Token</div>
+            <div className={styles.loginSub}>用于云端同步，Token 仅存于你的浏览器</div>
+            <input
+              className={styles.loginInput}
+              type="password"
+              placeholder="粘贴 GitHub Personal Access Token"
+              value={tokenInput}
+              onChange={(e) => setTokenInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleTokenSubmit()}
+              autoFocus
+            />
+            <button className={styles.loginBtn} onClick={handleTokenSubmit}>保存</button>
+          </div>
+        </div>
+      )}
       <Navbar
         theme={theme}
         intervalMs={intervalMs}

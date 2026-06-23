@@ -61,11 +61,21 @@ export function expand(data: any): ServerData {
 
 // ───── GitHub API ─────
 
-const GH_TOKEN = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GH_TOKEN) as string || '';
+const GH_TOKEN = (() => {
+  try { return localStorage.getItem('github_token') || ''; } catch { return ''; }
+})();
+
+/** 更新 token（用户通过 UI 设置后调用） */
+let _tokenOverride = '';
+export function setGitHubToken(token: string) {
+  _tokenOverride = token;
+  try { localStorage.setItem('github_token', token); } catch {}
+}
+function getToken(): string { return _tokenOverride || GH_TOKEN; }
 
 function authHeaders(): Record<string, string> {
   const h: Record<string, string> = { Accept: 'application/vnd.github+json' };
-  if (GH_TOKEN) h['Authorization'] = 'Bearer ' + GH_TOKEN;
+  if (getToken()) h['Authorization'] = 'Bearer ' + getToken();
   return h;
 }
 
@@ -82,7 +92,7 @@ export async function loadFromServer(): Promise<ServerData | null> {
     }
   } catch {}
 
-  if (!GH_TOKEN) return null;
+  if (!getToken()) return null;
   try {
     const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`;
     const res = await fetch(url, { headers: authHeaders(), signal: AbortSignal.timeout(5000) });
@@ -99,7 +109,7 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingData: ServerData | null = null;
 
 async function doSave(data: ServerData): Promise<boolean> {
-  if (!GH_TOKEN) return false;
+  if (!getToken()) return false;
   // 压缩后保存
   const compressed = compress(data.boards, data.boardOrder);
   const json = JSON.stringify(compressed);
@@ -135,7 +145,7 @@ async function doSave(data: ServerData): Promise<boolean> {
 
 /** 保存到 GitHub（防抖 2 秒，自动压缩） */
 export function saveToServer(data: ServerData) {
-  if (!GH_TOKEN) return;
+  if (!getToken()) return;
   pendingData = data;
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
@@ -144,5 +154,5 @@ export function saveToServer(data: ServerData) {
 }
 
 export function isServerMode(): boolean {
-  return GH_TOKEN.length > 0;
+  return getToken().length > 0;
 }
