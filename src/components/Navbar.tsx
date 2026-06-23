@@ -114,8 +114,8 @@ export default function Navbar({
           <button className={styles.iconBtn} onClick={onDownloadData} title="从云端下载数据">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M17.5 19H9a7 7 0 1 1 6.71-5h1.79a4.5 4.5 0 1 1 0 9H17" />
-              <polyline points="14 14 17 17 20 14" />
-              <line x1="17" y1="17" x2="17" y2="10" />
+              <polyline points="8 17 12 21 16 17" />
+              <line x1="12" y1="21" x2="12" y2="9" />
             </svg>
           </button>
 
@@ -123,8 +123,8 @@ export default function Navbar({
           <button className={styles.iconBtn} onClick={onUploadData} title="上传数据到云端">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M17.5 19H9a7 7 0 1 1 6.71-5h1.79a4.5 4.5 0 1 1 0 9H17" />
-              <polyline points="14 8 17 5 20 8" />
-              <line x1="17" y1="5" x2="17" y2="14" />
+              <polyline points="8 12 12 8 16 12" />
+              <line x1="12" y1="16" x2="12" y2="8" />
             </svg>
           </button>
 
