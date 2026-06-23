@@ -48,13 +48,32 @@ export default function App() {
           if (data.boardOrder?.length > 0) setBoardOrder(data.boardOrder);
         }
       });
+    } else {
+      // 非服务端模式直接允许保存
+      serverLoadedRef.current = true;
     }
   }, []); // eslint-disable-line
 
-  // 数据变化时自动保存到 GitHub（仅当已从服务端加载过后才保存，避免用空数据覆盖云端）
+  // 数据变化时自动保存到 GitHub（仅存基本结构，不存实时价格）
   useEffect(() => {
     if (serverMode && serverLoadedRef.current) {
-      saveToServer({ boards, boardOrder });
+      // 去掉价格信息，只存代码+名称+市场
+      const clean: Record<string, Board> = {};
+      for (const [id, b] of Object.entries(boards)) {
+        clean[id] = {
+          ...b,
+          stocks: b.stocks.map((s) => ({
+            id: s.id,
+            code: s.code,
+            name: s.name,
+            market: s.market,
+            price: 0,
+            prevClose: 0,
+            changePercent: 0,
+          })),
+        } as Board;
+      }
+      saveToServer({ boards: clean, boardOrder });
     }
   }, [boards, boardOrder]);
 
