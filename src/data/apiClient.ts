@@ -9,18 +9,6 @@ import { compress, expand } from './boardsCompress';
 
 const TABLE = 'boards_data';
 
-/** 获取或创建用户标识（localStorage 持久化，用于 RLS 隔离） */
-export function getUserId(): string {
-  try {
-    let uid = localStorage.getItem('stock_user_id');
-    if (!uid) {
-      uid = crypto.randomUUID?.() || 'user-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
-      localStorage.setItem('stock_user_id', uid);
-    }
-    return uid;
-  } catch { return 'anonymous'; }
-}
-
 export interface ServerData {
   boards: Record<string, any>;
   boardOrder: string[];
