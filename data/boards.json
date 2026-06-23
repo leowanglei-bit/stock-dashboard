@@ -26,24 +26,49 @@
           "code": "300502",
           "name": "新易盛",
           "market": "sz",
-          "price": 575.92,
+          "price": 576.47,
           "prevClose": 579.97,
-          "changePercent": -0.7
+          "changePercent": -0.6
         },
         {
           "id": "stk-1-1782180946509",
           "code": "300394",
           "name": "天孚通信",
           "market": "sz",
-          "price": 320.49,
+          "price": 320.2,
           "prevClose": 326.12,
-          "changePercent": -1.73
+          "changePercent": -1.82
+        },
+        {
+          "id": "stk-1-1782181916587",
+          "code": "603629",
+          "name": "利通电子",
+          "market": "sh",
+          "price": 201.46,
+          "prevClose": 194.24,
+          "changePercent": 3.72
         }
       ],
       "title": "新板块 1"
+    },
+    "brd-2-1782181930820": {
+      "id": "brd-2-1782181930820",
+      "title": "新板块 2",
+      "stocks": [
+        {
+          "id": "stk-3-1782181939785",
+          "code": "600519",
+          "name": "贵州茅台",
+          "market": "sh",
+          "price": 1230.66,
+          "prevClose": 1241.41,
+          "changePercent": -0.87
+        }
+      ]
     }
   },
   "boardOrder": [
-    "brd-1-1782124680847"
+    "brd-1-1782124680847",
+    "brd-2-1782181930820"
   ]
 }
