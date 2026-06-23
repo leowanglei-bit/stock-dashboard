@@ -4,13 +4,13 @@
       "id": "brd-1-1782124680847",
       "stocks": [
         {
-          "changePercent": -0.03,
+          "changePercent": 0,
           "code": "600036",
           "id": "stk-2-1782124686173",
           "market": "sh",
           "name": "招商银行",
           "prevClose": 37.65,
-          "price": 37.64
+          "price": 37.65
         },
         {
           "changePercent": -5.95,
@@ -26,9 +26,9 @@
           "code": "300502",
           "name": "新易盛",
           "market": "sz",
-          "price": 576.51,
+          "price": 576.83,
           "prevClose": 579.97,
-          "changePercent": -0.6
+          "changePercent": -0.54
         },
         {
           "id": "stk-1-1782180946509",
@@ -38,12 +38,37 @@
           "price": 320.8,
           "prevClose": 326.12,
           "changePercent": -1.63
+        },
+        {
+          "id": "stk-1-1782181916587",
+          "code": "603629",
+          "name": "利通电子",
+          "market": "sh",
+          "price": 201.64,
+          "prevClose": 194.24,
+          "changePercent": 3.81
         }
       ],
       "title": "新板块 1"
+    },
+    "brd-2-1782181930820": {
+      "id": "brd-2-1782181930820",
+      "title": "新板块 2",
+      "stocks": [
+        {
+          "id": "stk-3-1782181939785",
+          "code": "600519",
+          "name": "贵州茅台",
+          "market": "sh",
+          "price": 1231.02,
+          "prevClose": 1241.41,
+          "changePercent": -0.84
+        }
+      ]
     }
   },
   "boardOrder": [
+    "brd-2-1782181930820",
     "brd-1-1782124680847"
   ]
 }
