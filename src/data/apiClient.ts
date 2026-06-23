@@ -26,12 +26,12 @@ export async function loadFromServer(): Promise<ServerData | null> {
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingData: ServerData | null = null;
+let pendingResolves: Array<(ok: boolean) => void> = [];
 
 async function doSave(data: ServerData): Promise<boolean> {
   if (!isSupabaseConfigured) return false;
   const compressed = compress(data.boards, data.boardOrder);
   try {
-    // 取第一行数据 upsert（始终只有一行，id 固定）
     const { data: existing } = await supabase.from(TABLE).select('id').limit(1);
     if (existing && existing.length > 0) {
       const { error } = await supabase
@@ -45,7 +45,10 @@ async function doSave(data: ServerData): Promise<boolean> {
         .insert({ data: compressed });
       return !error;
     }
-  } catch { return false; }
+  } catch {
+    console.error('[apiClient] doSave failed — table missing or RLS blocking?');
+    return false;
+  }
 }
 
 /** 保存到 Supabase（防抖 2 秒），返回是否成功 */
@@ -54,13 +57,18 @@ export function saveToServer(data: ServerData): Promise<boolean> {
   pendingData = data;
   if (saveTimer) clearTimeout(saveTimer);
   return new Promise((resolve) => {
+    pendingResolves.push(resolve);
     saveTimer = setTimeout(async () => {
       if (pendingData) {
         const ok = await doSave(pendingData);
         pendingData = null;
-        resolve(ok);
+        const resolves = pendingResolves.slice();
+        pendingResolves = [];
+        resolves.forEach((r) => r(ok));
       } else {
-        resolve(false);
+        const resolves = pendingResolves.slice();
+        pendingResolves = [];
+        resolves.forEach((r) => r(false));
       }
     }, 2000);
   });
