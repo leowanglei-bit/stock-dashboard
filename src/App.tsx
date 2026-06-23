@@ -8,7 +8,7 @@ import { useLocalStorage } from './hooks/useLocalStorage';
 import { useRealtimePrices } from './hooks/useRealtimePrices';
 import { useToast } from './hooks/useToast';
 import { genId } from './data/utils';
-import { loadFromServer, saveToServer } from './data/apiClient';
+import { loadFromServer, saveToServer, login, isLoggedIn } from './data/apiClient';
 import type { Board, Stock, ThemeMode, ColorMode, ToastItem } from './types';
 
 // 数据版本 — 每次重大变更时递增，自动重置旧缓存
@@ -33,6 +33,9 @@ export default function App() {
   const [modal, setModal] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
   const [lastUpdateTime, setLastUpdateTime] = useState<string>('');
   const [apiStatus, setApiStatus] = useState<'fetching' | 'ok' | 'unavailable'>('fetching');
+  const [loggedIn, setLoggedIn] = useState(isLoggedIn());
+  const [loginPwd, setLoginPwd] = useState('');
+  const [loginErr, setLoginErr] = useState('');
   const toast = useToast(setToasts);
 
   // 初始化：从服务器加载数据
@@ -87,6 +90,24 @@ export default function App() {
     onUpdateTime: setLastUpdateTime,
     onApiStatus: setApiStatus,
   });
+
+  // === HANDLERS ===
+  const handleLogin = useCallback(async () => {
+    setLoginErr('');
+    const ok = await login(loginPwd);
+    if (ok) {
+      setLoggedIn(true);
+      toast('登录成功', 'success');
+      // 登录后加载数据
+      const data = await loadFromServer();
+      if (data && Object.keys(data.boards).length > 0) {
+        setBoards(data.boards as Record<string, Board>);
+        if (data.boardOrder?.length > 0) setBoardOrder(data.boardOrder);
+      }
+    } else {
+      setLoginErr('密码错误');
+    }
+  }, [loginPwd, setBoards, setBoardOrder, toast]);
 
   const toggleTheme = useCallback(() => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
@@ -269,6 +290,26 @@ export default function App() {
 
   return (
     <div className={styles.appContainer}>
+      {!loggedIn && (
+        <div className={styles.loginOverlay}>
+          <div className={styles.loginBox}>
+            <div className={styles.loginLogo}>🍵</div>
+            <div className={styles.loginTitle}>灵犀茶馆</div>
+            <div className={styles.loginSub}>心有灵犀 谈笑间 众生皆有回响</div>
+            <input
+              className={styles.loginInput}
+              type="password"
+              placeholder="输入密码"
+              value={loginPwd}
+              onChange={(e) => setLoginPwd(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+              autoFocus
+            />
+            {loginErr && <div className={styles.loginError}>{loginErr}</div>}
+            <button className={styles.loginBtn} onClick={handleLogin}>进入</button>
+          </div>
+        </div>
+      )}
       <Navbar
         theme={theme}
         colorMode={colorMode}

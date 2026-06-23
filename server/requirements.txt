@@ -1,0 +1,5 @@
+# 灵犀茶馆 — 后端服务
+# Python Flask + SQLite，单用户密码登录
+
+flask>=3.0
+flask-cors>=4.0

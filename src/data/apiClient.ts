@@ -1,93 +1,66 @@
 /**
- * 服务端数据持久化 — GitHub Repository API
- * 自动读写 data/boards.json，跨设备数据一致
- * Token 从 localStorage 读取，用户无感
+ * 服务端持久化 — 调 Flask 后端 API
+ * Token 存 localStorage，首次使用需登录一次
  */
 
-const OWNER = 'leowanglei-bit';
-const REPO = 'stock-dashboard';
-const FILE_PATH = 'data/boards.json';
+const SERVER = '';
 
 export interface ServerData {
   boards: Record<string, any>;
   boardOrder: string[];
 }
 
-let fileSha: string | null = null;
-let saveTimer: ReturnType<typeof setTimeout> | null = null;
-let pendingData: ServerData | null = null;
-
-function getToken(): string {
-  try {
-    return (typeof localStorage !== 'undefined' ? localStorage.getItem('github_token') : '') || '';
-  } catch { return ''; }
+function token(): string {
+  try { return localStorage.getItem('lxcg_token') || ''; } catch { return ''; }
 }
 
-function authHeaders(): Record<string, string> {
-  const tok = getToken();
-  const h: Record<string, string> = { Accept: 'application/vnd.github+json' };
-  if (tok) {
-    const prefix = 'Bearer';
-    h['Authorization'] = prefix + ' ' + tok;
-  }
-  return h;
+export function setToken(t: string) {
+  try { localStorage.setItem('lxcg_token', t); } catch {}
+}
+
+export function clearToken() {
+  try { localStorage.removeItem('lxcg_token'); } catch {}
+}
+
+export function isLoggedIn(): boolean {
+  return token().length > 0;
+}
+
+const AUTH_PREFIX = 'Bearer';
+
+async function api(path: string, options?: RequestInit): Promise<Response> {
+  const base = SERVER || window.location.origin;
+  const t = token();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (t) headers['Authorization'] = AUTH_PREFIX + ' ' + t;
+  return fetch(base + path, { ...options, headers });
+}
+
+export async function login(password: string): Promise<boolean> {
+  const res = await api('/api/login', {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) return false;
+  const data = await res.json();
+  setToken(data.token);
+  return true;
 }
 
 export async function loadFromServer(): Promise<ServerData | null> {
   try {
-    const rawUrl = `https://raw.githubusercontent.com/${OWNER}/${REPO}/main/${FILE_PATH}`;
-    const rawRes = await fetch(rawUrl, { signal: AbortSignal.timeout(5000) });
-    if (rawRes.ok) return await rawRes.json();
-  } catch {}
-
-  try {
-    const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`;
-    const res = await fetch(url, { headers: authHeaders(), signal: AbortSignal.timeout(5000) });
+    const res = await api('/api/boards');
     if (!res.ok) return null;
-    const data = await res.json();
-    fileSha = data.sha;
-    const decoded = decodeURIComponent(escape(atob(data.content)));
-    return JSON.parse(decoded);
+    return await res.json();
   } catch { return null; }
 }
 
-async function doSave(data: ServerData): Promise<boolean> {
-  if (!getToken()) return false;
-  const json = JSON.stringify(data, null, 2);
-  const content = btoa(unescape(encodeURIComponent(json)));
-
+export async function saveToServer(data: ServerData): Promise<boolean> {
   try {
-    if (!fileSha) {
-      const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`;
-      const getRes = await fetch(url, { headers: authHeaders(), signal: AbortSignal.timeout(5000) });
-      if (getRes.ok) { const meta = await getRes.json(); fileSha = meta.sha; }
-    }
-
-    const putUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`;
-    const body: any = { message: 'update boards [auto]', content };
-    if (fileSha) body.sha = fileSha;
-
-    const putRes = await fetch(putUrl, {
+    const res = await api('/api/boards', {
       method: 'PUT',
-      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(8000),
+      body: JSON.stringify(data),
     });
-
-    if (putRes.ok) {
-      const result = await putRes.json();
-      fileSha = result.content?.sha || null;
-      return true;
-    }
-    if (putRes.status === 409) { fileSha = null; return doSave(data); }
-    return false;
+    return res.ok;
   } catch { return false; }
-}
-
-export function saveToServer(data: ServerData) {
-  pendingData = data;
-  if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(async () => {
-    if (pendingData) { await doSave(pendingData); pendingData = null; }
-  }, 2000);
 }
