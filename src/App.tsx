@@ -34,8 +34,10 @@ export default function App() {
   const [apiStatus, setApiStatus] = useState<'fetching' | 'ok' | 'unavailable'>('fetching');
   const toast = useToast(setToasts);
 
-  // 判断是否启用服务端模式（GitHub Pages 构建时注入 token）
+  // 判断是否启用服务端模式
   const serverMode = isServerMode();
+  const boardOrderRef = useRef(boardOrder);
+  boardOrderRef.current = boardOrder;
 
   useEffect(() => {
     if (serverMode) {
@@ -55,6 +57,48 @@ export default function App() {
       saveToServer({ boards, boardOrder });
     }
   }, [boards, boardOrder, serverMode]);
+
+  // 定时轮询云端，自动同步其他设备的变更
+  useEffect(() => {
+    if (!serverMode) return;
+    let mounted = true;
+    const poll = async () => {
+      const remote = await loadFromServer();
+      if (!mounted || !remote || Object.keys(remote.boards).length === 0) return;
+      setBoards((prev) => {
+        // 检查远程是否有新数据
+        const curOrder = boardOrderRef.current;
+        const prevStr = JSON.stringify({ boards: prev, boardOrder: curOrder });
+        const remoteStr = JSON.stringify(remote);
+        if (prevStr === remoteStr) return prev; // 无变化
+
+        // 合并：本地为主，远程补充
+        const merged = { ...prev };
+        for (const [bid, rBoard] of Object.entries(remote.boards)) {
+          const lBoard = merged[bid];
+          if (!lBoard) {
+            merged[bid] = rBoard;
+          } else {
+            const localCodes = new Set(lBoard.stocks.map((s: any) => s.code));
+            const mergedStocks = [...lBoard.stocks];
+            for (const rs of rBoard.stocks) {
+              if (!localCodes.has(rs.code)) mergedStocks.push(rs);
+            }
+            merged[bid] = { ...lBoard, stocks: mergedStocks };
+          }
+        }
+        return merged;
+      });
+      setBoardOrder((prev) => {
+        const remoteOrder = remote.boardOrder || [];
+        const added = prev.filter((id) => !remoteOrder.includes(id));
+        return [...new Set([...remoteOrder, ...added])];
+      });
+    };
+    poll(); // 立即执行一次
+    const timer = setInterval(poll, 15000); // 每 15 秒轮询
+    return () => { mounted = false; clearInterval(timer); };
+  }, [serverMode]); // eslint-disable-line
 
   // 同步 boardOrder 和 boards（新增板块自动加入末尾，删除的自动移除）
   useEffect(() => {
