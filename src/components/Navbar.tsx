@@ -1,15 +1,13 @@
 import styles from './Navbar.module.css';
-import type { ThemeMode, ColorMode } from '../types';
+import type { ThemeMode } from '../types';
 
 interface NavbarProps {
   theme: ThemeMode;
-  colorMode: ColorMode;
   intervalMs: number;
   simulationActive: boolean;
   lastUpdateTime: string;
   apiStatus: 'fetching' | 'ok' | 'unavailable';
   onToggleTheme: () => void;
-  onToggleColorMode: () => void;
   onIntervalChange: (ms: number) => void;
   onToggleSimulation: () => void;
   onAddBoard: () => void;
@@ -20,13 +18,11 @@ interface NavbarProps {
 
 export default function Navbar({
   theme,
-  colorMode,
   intervalMs,
   simulationActive,
   lastUpdateTime,
   apiStatus,
   onToggleTheme,
-  onToggleColorMode,
   onIntervalChange,
   onToggleSimulation,
   onAddBoard,
@@ -112,14 +108,6 @@ export default function Navbar({
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
               </svg>
             )}
-          </button>
-
-          {/* 颜色模式切换 */}
-          <button className={styles.iconBtn} onClick={onToggleColorMode} title={colorMode === 'cn' ? '切换为美股配色' : '切换为A股配色'}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20z" />
-            </svg>
           </button>
 
           {/* 从云端下载 */}

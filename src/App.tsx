@@ -9,7 +9,7 @@ import { useRealtimePrices } from './hooks/useRealtimePrices';
 import { useToast } from './hooks/useToast';
 import { genId } from './data/utils';
 import { loadFromServer, saveToServer, isServerMode } from './data/apiClient';
-import type { Board, Stock, ThemeMode, ColorMode, ToastItem } from './types';
+import type { Board, Stock, ThemeMode, ToastItem } from './types';
 
 // 数据版本 — 每次重大变更时递增，自动重置旧缓存
 const DATA_VERSION = 'v3';
@@ -24,7 +24,6 @@ export default function App() {
   }
 
   const [theme, setTheme] = useLocalStorage<ThemeMode>('stock_theme_mode', 'dark');
-  const [colorMode, setColorMode] = useLocalStorage<ColorMode>('stock_color_mode', 'cn');
   const [intervalMs, setIntervalMs] = useLocalStorage('stock_interval', 3000);
   const [simulationActive, setSimulationActive] = useState(true);
   const [boards, setBoards] = useLocalStorage<Record<string, Board>>('stock_boards', {});
@@ -76,11 +75,6 @@ export default function App() {
     document.body.classList.toggle('theme-light', theme === 'light');
   }, [theme]);
 
-  // Apply color mode
-  useEffect(() => {
-    document.body.classList.toggle('color-mode-us', colorMode === 'us');
-  }, [colorMode]);
-
   // Realtime prices — 绝不虚构数据
   const { refresh: refreshPrices } = useRealtimePrices({
     _boards: boards,
@@ -123,10 +117,6 @@ export default function App() {
   const toggleTheme = useCallback(() => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   }, [setTheme]);
-
-  const toggleColorMode = useCallback(() => {
-    setColorMode((prev) => (prev === 'cn' ? 'us' : 'cn'));
-  }, [setColorMode]);
 
   const toggleSimulation = useCallback(() => {
     setSimulationActive((prev) => !prev);
@@ -303,13 +293,11 @@ export default function App() {
     <div className={styles.appContainer}>
       <Navbar
         theme={theme}
-        colorMode={colorMode}
         intervalMs={intervalMs}
         simulationActive={simulationActive}
         lastUpdateTime={lastUpdateTime}
         apiStatus={apiStatus}
         onToggleTheme={toggleTheme}
-        onToggleColorMode={toggleColorMode}
         onIntervalChange={setIntervalMs}
         onToggleSimulation={toggleSimulation}
         onAddBoard={addBoard}
