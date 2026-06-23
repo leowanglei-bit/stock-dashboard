@@ -26,18 +26,18 @@
           "code": "300502",
           "name": "新易盛",
           "market": "sz",
-          "price": 574.89,
+          "price": 575,
           "prevClose": 579.97,
-          "changePercent": -0.88
+          "changePercent": -0.86
         },
         {
           "id": "stk-1-1782180946509",
           "code": "300394",
           "name": "天孚通信",
           "market": "sz",
-          "price": 319.78,
+          "price": 320.27,
           "prevClose": 326.12,
-          "changePercent": -1.94
+          "changePercent": -1.79
         }
       ],
       "title": "新板块 1"
