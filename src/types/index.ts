@@ -7,7 +7,6 @@ export interface Stock {
   price: number;
   prevClose: number;
   changePercent: number;
-  popularity?: number;
 }
 
 export interface Board {
@@ -15,8 +14,6 @@ export interface Board {
   title: string;
   stocks: Stock[];
 }
-
-export type ColorMode = 'cn' | 'us';
 
 export type ThemeMode = 'dark' | 'light';
 

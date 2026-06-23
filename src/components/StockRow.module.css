@@ -72,10 +72,6 @@
   align-items: center;
   gap: 0.35rem;
 }
-.stockPop {
-  color: var(--text-muted);
-  font-weight: 500;
-}
 
 .stockRight {
   flex-shrink: 0;

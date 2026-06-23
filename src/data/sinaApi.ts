@@ -14,13 +14,6 @@ export interface StockQuote {
   time: string;
 }
 
-/** 搜索结果条目 */
-export interface StockSearchResult {
-  code: string;   // 纯数字代码
-  name: string;
-  market: 'sh' | 'sz' | 'star' | 'chinext' | 'bse';
-}
-
 // ───── 新浪 API ─────
 function sinaCode(code: string, market?: string): string {
   if (code.startsWith('sh') || code.startsWith('sz') || code.startsWith('bj')) return code;
@@ -151,57 +144,4 @@ export function mergeQuotes(
     }
   }
   return map;
-}
-
-// ───── 股票搜索（新浪 suggest API）─────
-/**
- * 通过新浪 suggest API 搜索股票
- * https://suggest3.sinajs.cn/suggest/type=11&key=<query>
- * type=11 表示搜索股票/基金/指数
- */
-function parseSinaSuggest(text: string): StockSearchResult[] {
-  const results: StockSearchResult[] = [];
-  const m = text.match(/var suggestData=\[(.*?)\];/);
-  if (!m) return results;
-
-  // 手动 JSON 解析（数据可能含中文）
-  try {
-    const items = JSON.parse(`[${m[1]}]`) as [string, string, string][];
-    for (const [codeFull, name] of items) {
-      // codeFull 格式: "sz002807" 或 "sh600519"
-      const match = codeFull.match(/^(sz|sh)(\d{6})$/);
-      if (!match) continue;
-      const marketPrefix = match[1];
-      const code = match[2];
-
-      // 判断市场类型
-      let market: StockSearchResult['market'] = 'sz';
-      if (marketPrefix === 'sh') {
-        market = code.startsWith('688') ? 'star' : 'sh';
-      } else {
-        market = code.startsWith('30') ? 'chinext' : code.startsWith('8') ? 'bse' : 'sz';
-      }
-
-      results.push({ code, name, market });
-    }
-  } catch { /* 解析失败 */ }
-
-  return results;
-}
-
-export async function searchStocksApi(query: string): Promise<StockSearchResult[]> {
-  if (!query.trim() || query.length < 1) return [];
-
-  const url = `https://suggest3.sinajs.cn/suggest/type=11&key=${encodeURIComponent(query)}`;
-  try {
-    const res = await fetch(url, {
-      headers: { Referer: 'https://finance.sina.com.cn' },
-      signal: AbortSignal.timeout(5000),
-    });
-    const buf = await res.arrayBuffer();
-    const text = new TextDecoder('gbk').decode(buf);
-    return parseSinaSuggest(text);
-  } catch {
-    return [];
-  }
 }

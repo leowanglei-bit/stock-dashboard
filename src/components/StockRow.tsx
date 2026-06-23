@@ -71,7 +71,6 @@ export default function StockRow({
           <span className={styles.stockName}>{stock.name}</span>
           <span className={styles.stockCode}>
             {stock.code}
-            {stock.popularity && <span className={styles.stockPop}>· 人气{stock.popularity}</span>}
           </span>
         </div>
       </div>
