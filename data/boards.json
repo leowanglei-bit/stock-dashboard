@@ -1,1 +1,31 @@
-{"boards":{},"boardOrder":[]}
+{
+  "boards": {
+    "brd-1-1782124680847": {
+      "id": "brd-1-1782124680847",
+      "stocks": [
+        {
+          "changePercent": 0,
+          "code": "600036",
+          "id": "stk-2-1782124686173",
+          "market": "sh",
+          "name": "招商银行",
+          "prevClose": 37.65,
+          "price": 37.65
+        },
+        {
+          "changePercent": -1.61,
+          "code": "601899",
+          "id": "stk-1-1782177405889",
+          "market": "sh",
+          "name": "紫金矿业",
+          "prevClose": 30.44,
+          "price": 29.95
+        }
+      ],
+      "title": "新板块 1"
+    }
+  },
+  "boardOrder": [
+    "brd-1-1782124680847"
+  ]
+}
