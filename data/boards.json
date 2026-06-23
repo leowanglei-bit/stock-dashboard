@@ -4,13 +4,13 @@
       "id": "brd-1-1782124680847",
       "stocks": [
         {
-          "changePercent": 0.45,
+          "changePercent": 0.42,
           "code": "600036",
           "id": "stk-2-1782124686173",
           "market": "sh",
           "name": "招商银行",
           "prevClose": 37.65,
-          "price": 37.82
+          "price": 37.81
         },
         {
           "changePercent": -5.62,
@@ -26,7 +26,7 @@
           "code": "300502",
           "name": "新易盛",
           "market": "sz",
-          "price": 565.45,
+          "price": 565.46,
           "prevClose": 579.97,
           "changePercent": -2.5
         }
