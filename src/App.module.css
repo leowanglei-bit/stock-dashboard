@@ -29,8 +29,26 @@
   font-size: 0.85rem;
   color: var(--text-dim);
   letter-spacing: 1px;
-  line-height: 1.6;
+  line-height: 1.8;
   flex-shrink: 0;
+}
+
+.footerSep {
+  display: inline;
+}
+
+@media (max-width: 640px) {
+  .footer {
+    padding: 0.75rem 1rem 1rem;
+    font-size: 0.8rem;
+    line-height: 2;
+  }
+  .footerSep {
+    display: none;
+  }
+  .footer span {
+    display: block;
+  }
 }
 
 /* ───── 登录页 ───── */

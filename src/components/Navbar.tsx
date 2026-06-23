@@ -6,7 +6,6 @@ interface NavbarProps {
   colorMode: ColorMode;
   intervalMs: number;
   simulationActive: boolean;
-  boardCount: number;
   lastUpdateTime: string;
   apiStatus: 'fetching' | 'ok' | 'unavailable';
   onToggleTheme: () => void;
@@ -22,7 +21,6 @@ export default function Navbar({
   colorMode,
   intervalMs,
   simulationActive,
-  boardCount,
   lastUpdateTime,
   apiStatus,
   onToggleTheme,
@@ -62,7 +60,7 @@ export default function Navbar({
             {apiStatus === 'unavailable' ? (
               <span style={{ color: 'var(--fall-color)' }}>网络不可用！</span>
             ) : simulationActive ? (
-              `${apiStatus === 'fetching' ? '加载中' : '实时'} · ${boardCount}个板块`
+              `${apiStatus === 'fetching' ? '加载中' : '实时'}`
             ) : '已暂停'}
             {lastUpdateTime && simulationActive && apiStatus === 'ok' && (
               <span className={styles.updateTime}> | {lastUpdateTime}</span>
