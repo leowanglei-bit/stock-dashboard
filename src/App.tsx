@@ -367,8 +367,6 @@ export default function App() {
         onToggleSimulation={toggleSimulation}
         onAddBoard={addBoard}
         onRefreshPrices={handleRefreshPrices}
-        onUploadData={handleUploadData}
-        onDownloadData={handleDownloadData}
       />
       <div className={styles.mainContent}>
         <SectionGroup
