@@ -2,6 +2,17 @@ import { useEffect, useRef, useCallback } from 'react';
 import type { Board } from '../types';
 import { fetchRealtimeQuotes, mergeQuotes } from '../data/sinaApi';
 
+/** 判断当前是否为 A 股交易时间 */
+function isTradingTime(): boolean {
+  const now = new Date();
+  const day = now.getDay();
+  if (day === 0 || day === 6) return false;
+  const h = now.getHours();
+  const m = now.getMinutes();
+  const t = h * 60 + m;
+  return (t >= 570 && t < 690) || (t >= 780 && t < 900);
+}
+
 export function useRealtimePrices({
   _boards,
   setBoards,
@@ -18,7 +29,6 @@ export function useRealtimePrices({
   onApiStatus?: (status: 'fetching' | 'ok' | 'unavailable') => void;
 }): { refresh: () => void } {
   const fetching = useRef(false);
-  // Hold latest boards in a ref so the callback doesn't stale-close
   const boardsRef = useRef(_boards);
   boardsRef.current = _boards;
 
@@ -67,22 +77,22 @@ export function useRealtimePrices({
       onUpdateTime?.(now);
       onApiStatus?.('ok');
     } else {
-      // 所有 API 全部不可用
       onApiStatus?.('unavailable');
     }
 
     fetching.current = false;
   }, [setBoards, onUpdateTime, onApiStatus]);
 
-  // 首次立即拉取
+  // 首次立即拉取（仅交易时段）
   useEffect(() => {
-    tick();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    if (isTradingTime()) tick();
+  }, []); // eslint-disable-line
 
-  // 定时拉取
+  // 定时拉取 — 交易时段按用户设置，非交易时段 60 秒检测一次
   useEffect(() => {
     if (!active) return;
-    const timer = setInterval(tick, intervalMs);
+    const interval = isTradingTime() ? intervalMs : 60000;
+    const timer = setInterval(tick, interval);
     return () => clearInterval(timer);
   }, [active, intervalMs, tick]);
 
