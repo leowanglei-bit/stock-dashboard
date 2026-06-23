@@ -8,7 +8,7 @@ import { useLocalStorage } from './hooks/useLocalStorage';
 import { useRealtimePrices } from './hooks/useRealtimePrices';
 import { useToast } from './hooks/useToast';
 import { genId } from './data/utils';
-import { loadFromServer, saveToServer, login, isLoggedIn, checkServer } from './data/apiClient';
+import { loadFromServer, saveToServer, isServerMode } from './data/apiClient';
 import type { Board, Stock, ThemeMode, ColorMode, ToastItem } from './types';
 
 // 数据版本 — 每次重大变更时递增，自动重置旧缓存
@@ -33,40 +33,28 @@ export default function App() {
   const [modal, setModal] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
   const [lastUpdateTime, setLastUpdateTime] = useState<string>('');
   const [apiStatus, setApiStatus] = useState<'fetching' | 'ok' | 'unavailable'>('fetching');
-  const [loggedIn, setLoggedIn] = useState(isLoggedIn());
-  const [loginPwd, setLoginPwd] = useState('');
-  const [loginErr, setLoginErr] = useState('');
   const toast = useToast(setToasts);
 
-  // 检测后端是否可用，决定使用服务端还是本地存储
-  const [useServer, setUseServer] = useState<boolean | null>(null);
+  // 判断是否启用服务端模式（GitHub Pages 构建时注入 token）
+  const serverMode = isServerMode();
 
   useEffect(() => {
-    checkServer().then((available) => {
-      setUseServer(available);
-      if (available) {
-        // 后端可用 → 已登录直接加载，未登录显示登录页
-        if (isLoggedIn()) {
-          loadFromServer().then((data) => {
-            if (data && Object.keys(data.boards).length > 0) {
-              setBoards(data.boards as Record<string, Board>);
-              if (data.boardOrder?.length > 0) setBoardOrder(data.boardOrder);
-            }
-          });
+    if (serverMode) {
+      loadFromServer().then((data) => {
+        if (data && Object.keys(data.boards).length > 0) {
+          setBoards(data.boards as Record<string, Board>);
+          if (data.boardOrder?.length > 0) setBoardOrder(data.boardOrder);
         }
-      } else {
-        // 后端不可用 → 直接用 localStorage，无需登录
-        setLoggedIn(true);
-      }
-    });
+      });
+    }
   }, []); // eslint-disable-line
 
-  // 数据变化时自动保存到服务器（仅当已登录且后端可用）
+  // 数据变化时自动保存到 GitHub
   useEffect(() => {
-    if (isLoggedIn() && useServer) {
+    if (serverMode) {
       saveToServer({ boards, boardOrder });
     }
-  }, [boards, boardOrder, useServer]);
+  }, [boards, boardOrder, serverMode]);
 
   // 同步 boardOrder 和 boards（新增板块自动加入末尾，删除的自动移除）
   useEffect(() => {
@@ -105,23 +93,12 @@ export default function App() {
     onApiStatus: setApiStatus,
   });
 
-  // === HANDLERS ===
-  const handleLogin = useCallback(async () => {
-    setLoginErr('');
-    const ok = await login(loginPwd);
-    if (ok) {
-      setLoggedIn(true);
-      toast('登录成功', 'success');
-      // 登录后加载数据
-      const data = await loadFromServer();
-      if (data && Object.keys(data.boards).length > 0) {
-        setBoards(data.boards as Record<string, Board>);
-        if (data.boardOrder?.length > 0) setBoardOrder(data.boardOrder);
-      }
-    } else {
-      setLoginErr('密码错误');
+  // === SAVE 提示 ===
+  useEffect(() => {
+    if (serverMode && Object.keys(boards).length > 0) {
+      toast('数据已同步至云端', 'info');
     }
-  }, [loginPwd, setBoards, setBoardOrder, toast]);
+  }, [serverMode]); // eslint-disable-line
 
   const toggleTheme = useCallback(() => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
@@ -304,31 +281,6 @@ export default function App() {
 
   return (
     <div className={styles.appContainer}>
-      {useServer === false && (
-        <div className={styles.localBanner}>
-          离线模式 — 数据存储在本地浏览器
-        </div>
-      )}
-      {!loggedIn && useServer && (
-        <div className={styles.loginOverlay}>
-          <div className={styles.loginBox}>
-            <div className={styles.loginLogo}>🍵</div>
-            <div className={styles.loginTitle}>灵犀茶馆</div>
-            <div className={styles.loginSub}>心有灵犀 谈笑间 众生皆有回响</div>
-            <input
-              className={styles.loginInput}
-              type="password"
-              placeholder="输入密码"
-              value={loginPwd}
-              onChange={(e) => setLoginPwd(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              autoFocus
-            />
-            {loginErr && <div className={styles.loginError}>{loginErr}</div>}
-            <button className={styles.loginBtn} onClick={handleLogin}>进入</button>
-          </div>
-        </div>
-      )}
       <Navbar
         theme={theme}
         colorMode={colorMode}

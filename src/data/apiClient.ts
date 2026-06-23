@@ -1,74 +1,103 @@
 /**
- * 服务端持久化 — 调 Flask 后端 API
- * Token 存 localStorage，首次使用需登录一次
+ * 服务端持久化 — GitHub Repository API
+ * Token 在构建时通过 VITE_GH_TOKEN 注入，用户无感
+ * 本地开发时 token 为空，回退 localStorage
  */
 
-const SERVER = 'http://localhost:5790';
+import type { Board } from '../types';
+
+const OWNER = 'leowanglei-bit';
+const REPO = 'stock-dashboard';
+const FILE_PATH = 'data/boards.json';
 
 export interface ServerData {
-  boards: Record<string, any>;
+  boards: Record<string, Board>;
   boardOrder: string[];
 }
 
-function token(): string {
-  try { return localStorage.getItem('lxcg_token') || ''; } catch { return ''; }
+// 构建时注入的 token（Vite 暴露 import.meta.env.VITE_*）
+const GH_TOKEN = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GH_TOKEN) as string || '';
+
+function authHeaders(): Record<string, string> {
+  const h: Record<string, string> = { Accept: 'application/vnd.github+json' };
+  if (GH_TOKEN) h['Authorization'] = 'Bearer ' + GH_TOKEN;
+  return h;
 }
 
-export function setToken(t: string) {
-  try { localStorage.setItem('lxcg_token', t); } catch {}
-}
+let fileSha: string | null = null;
 
-export function clearToken() {
-  try { localStorage.removeItem('lxcg_token'); } catch {}
-}
-
-export function isLoggedIn(): boolean {
-  return token().length > 0;
-}
-
-const AUTH_PREFIX = 'Bearer';
-
-async function api(path: string, options?: RequestInit): Promise<Response> {
-  const base = SERVER || window.location.origin;
-  const t = token();
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (t) headers['Authorization'] = AUTH_PREFIX + ' ' + t;
-  return fetch(base + path, { ...options, headers });
-}
-
-export async function login(password: string): Promise<boolean> {
-  const res = await api('/api/login', {
-    method: 'POST',
-    body: JSON.stringify({ password }),
-  });
-  if (!res.ok) return false;
-  const data = await res.json();
-  setToken(data.token);
-  return true;
-}
-
+/** 从 GitHub 读取 boards.json */
 export async function loadFromServer(): Promise<ServerData | null> {
+  // 先试 raw（无认证，但读取最新提交的数据）
   try {
-    const res = await api('/api/boards');
+    const rawUrl = `https://raw.githubusercontent.com/${OWNER}/${REPO}/main/${FILE_PATH}`;
+    const rawRes = await fetch(rawUrl, { signal: AbortSignal.timeout(5000) });
+    if (rawRes.ok) {
+      const data = await rawRes.json();
+      if (data && data.boards) return data;
+    }
+  } catch {}
+
+  // 再试 API（需 token）
+  if (!GH_TOKEN) return null;
+  try {
+    const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`;
+    const res = await fetch(url, { headers: authHeaders(), signal: AbortSignal.timeout(5000) });
     if (!res.ok) return null;
-    return await res.json();
+    const data = await res.json();
+    fileSha = data.sha;
+    const decoded = decodeURIComponent(escape(atob(data.content)));
+    return JSON.parse(decoded);
   } catch { return null; }
 }
 
-export async function saveToServer(data: ServerData): Promise<boolean> {
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingData: ServerData | null = null;
+
+async function doSave(data: ServerData): Promise<boolean> {
+  if (!GH_TOKEN) return false;
+  const json = JSON.stringify(data, null, 2);
+  const content = btoa(unescape(encodeURIComponent(json)));
+
   try {
-    const res = await api('/api/boards', {
+    if (!fileSha) {
+      const url = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`;
+      const getRes = await fetch(url, { headers: authHeaders(), signal: AbortSignal.timeout(5000) });
+      if (getRes.ok) { const meta = await getRes.json(); fileSha = meta.sha; }
+    }
+
+    const putUrl = `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`;
+    const body: any = { message: 'update boards [auto]', content };
+    if (fileSha) body.sha = fileSha;
+
+    const putRes = await fetch(putUrl, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(8000),
     });
-    return res.ok;
+
+    if (putRes.ok) {
+      const result = await putRes.json();
+      fileSha = result.content?.sha || null;
+      return true;
+    }
+    if (putRes.status === 409) { fileSha = null; return doSave(data); }
+    return false;
   } catch { return false; }
 }
 
-/** 检测后端是否可达 */
-export async function checkServer(): Promise<boolean> {
-  try {
-    const res = await fetch(SERVER + '/api/ping', { signal: AbortSignal.timeout(3000) });
-    return res.ok;
-  } catch { return false; }
+/** 保存到 GitHub（防抖 2 秒） */
+export function saveToServer(data: ServerData) {
+  if (!GH_TOKEN) return;
+  pendingData = data;
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    if (pendingData) { await doSave(pendingData); pendingData = null; }
+  }, 2000);
+}
+
+/** 判断当前是否使用服务端模式 */
+export function isServerMode(): boolean {
+  return GH_TOKEN.length > 0;
 }
