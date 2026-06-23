@@ -8,7 +8,7 @@ import { useLocalStorage } from './hooks/useLocalStorage';
 import { useRealtimePrices } from './hooks/useRealtimePrices';
 import { useToast } from './hooks/useToast';
 import { genId } from './data/utils';
-import { loadFromServer, saveToServer, login, isLoggedIn } from './data/apiClient';
+import { loadFromServer, saveToServer, login, isLoggedIn, checkServer } from './data/apiClient';
 import type { Board, Stock, ThemeMode, ColorMode, ToastItem } from './types';
 
 // 数据版本 — 每次重大变更时递增，自动重置旧缓存
@@ -38,21 +38,35 @@ export default function App() {
   const [loginErr, setLoginErr] = useState('');
   const toast = useToast(setToasts);
 
-  // 初始化：从服务器加载数据
+  // 检测后端是否可用，决定使用服务端还是本地存储
+  const [useServer, setUseServer] = useState<boolean | null>(null);
+
   useEffect(() => {
-    loadFromServer().then((data) => {
-      if (data && Object.keys(data.boards).length > 0) {
-        setBoards(data.boards as Record<string, Board>);
-        if (data.boardOrder?.length > 0) setBoardOrder(data.boardOrder);
-        toast('已从服务器同步数据', 'info');
+    checkServer().then((available) => {
+      setUseServer(available);
+      if (available) {
+        // 后端可用 → 已登录直接加载，未登录显示登录页
+        if (isLoggedIn()) {
+          loadFromServer().then((data) => {
+            if (data && Object.keys(data.boards).length > 0) {
+              setBoards(data.boards as Record<string, Board>);
+              if (data.boardOrder?.length > 0) setBoardOrder(data.boardOrder);
+            }
+          });
+        }
+      } else {
+        // 后端不可用 → 直接用 localStorage，无需登录
+        setLoggedIn(true);
       }
     });
   }, []); // eslint-disable-line
 
-  // 数据变化时自动保存到服务器
+  // 数据变化时自动保存到服务器（仅当已登录且后端可用）
   useEffect(() => {
-    saveToServer({ boards, boardOrder });
-  }, [boards, boardOrder]);
+    if (isLoggedIn() && useServer) {
+      saveToServer({ boards, boardOrder });
+    }
+  }, [boards, boardOrder, useServer]);
 
   // 同步 boardOrder 和 boards（新增板块自动加入末尾，删除的自动移除）
   useEffect(() => {
@@ -290,7 +304,12 @@ export default function App() {
 
   return (
     <div className={styles.appContainer}>
-      {!loggedIn && (
+      {useServer === false && (
+        <div className={styles.localBanner}>
+          离线模式 — 数据存储在本地浏览器
+        </div>
+      )}
+      {!loggedIn && useServer && (
         <div className={styles.loginOverlay}>
           <div className={styles.loginBox}>
             <div className={styles.loginLogo}>🍵</div>

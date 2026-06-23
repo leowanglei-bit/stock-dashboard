@@ -3,7 +3,7 @@
  * Token 存 localStorage，首次使用需登录一次
  */
 
-const SERVER = '';
+const SERVER = 'http://localhost:5790';
 
 export interface ServerData {
   boards: Record<string, any>;
@@ -61,6 +61,14 @@ export async function saveToServer(data: ServerData): Promise<boolean> {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+    return res.ok;
+  } catch { return false; }
+}
+
+/** 检测后端是否可达 */
+export async function checkServer(): Promise<boolean> {
+  try {
+    const res = await fetch(SERVER + '/api/ping', { signal: AbortSignal.timeout(3000) });
     return res.ok;
   } catch { return false; }
 }

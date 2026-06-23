@@ -114,3 +114,18 @@
   box-shadow: 0 4px 16px var(--primary-glow);
   transform: translateY(-1px);
 }
+
+/* ───── 离线模式提示 ───── */
+.localBanner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  text-align: center;
+  padding: 0.35rem;
+  font-size: 0.75rem;
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-color);
+}

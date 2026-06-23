@@ -12,10 +12,10 @@ import sqlite3
 from datetime import datetime, timedelta
 from functools import wraps
 
-from flask import Flask, request, jsonify, g
+from flask import Flask, request, jsonify, g, send_from_directory
 from flask_cors import CORS
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='../dist', static_url_path='')
 CORS(app)
 
 # ───── 配置 ─────
@@ -103,6 +103,21 @@ def save_boards():
 @app.route('/api/ping', methods=['GET'])
 def ping():
     return jsonify({'ok': True, 'server': 'lingxichaguan'})
+
+# ───── 前端静态文件 ─────
+@app.route('/')
+def index():
+    return send_from_directory('../dist', 'index.html')
+
+@app.route('/<path:path>')
+def static_files(path):
+    # API 路由不走这里
+    if path.startswith('api/'):
+        return jsonify({'error': 'not found'}), 404
+    try:
+        return send_from_directory('../dist', path)
+    except:
+        return send_from_directory('../dist', 'index.html')
 
 # ───── 启动 ─────
 if __name__ == '__main__':
