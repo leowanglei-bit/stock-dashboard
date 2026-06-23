@@ -132,53 +132,6 @@ export default function App() {
     onApiStatus: setApiStatus,
   });
 
-  // === 云端同步 ===
-  const handleUploadData = useCallback(async () => {
-    if (!serverMode) { toast('服务端未配置，数据仅存本地', 'error'); return; }
-    const errMsg = await saveToServer({ boards, boardOrder });
-    toast(errMsg ? `上传失败: ${errMsg}` : '数据已上传至云端', errMsg ? 'error' : 'success');
-  }, [serverMode, boards, boardOrder, toast]);
-
-  const handleDownloadData = useCallback(async () => {
-    if (!serverMode) { toast('服务端未配置，数据仅存本地', 'error'); return; }
-    const data = await loadFromServer();
-    if (!data || Object.keys(data.boards).length === 0) {
-      toast('云端暂无数据', 'info');
-      return;
-    }
-    // 合并逻辑：云端 -> 本地，按板块 ID 合并，同板块合并股票（去重）
-    setBoards((prev) => {
-      const merged = { ...prev };
-      for (const [bid, remoteBoard] of Object.entries(data.boards)) {
-        const localBoard = merged[bid];
-        if (!localBoard) {
-          // 云端有、本地没有 → 新增
-          merged[bid] = remoteBoard;
-        } else {
-          // 都有 → 合并股票（云端优先覆盖同名 code 的价格，但价格会被实时 API 覆盖）
-          const localCodes = new Set(localBoard.stocks.map((s) => s.code));
-          const mergedStocks = [...localBoard.stocks];
-          for (const rs of remoteBoard.stocks) {
-            if (!localCodes.has(rs.code)) {
-              mergedStocks.push(rs);
-            }
-          }
-          merged[bid] = { ...localBoard, stocks: mergedStocks };
-        }
-      }
-      return merged;
-    });
-    // 合并 boardOrder：云端排序为主，追加本地独有的
-    setBoardOrder((prev) => {
-      const remoteOrder = data.boardOrder || [];
-      const added = prev.filter((id) => !remoteOrder.includes(id));
-      const mergedOrder = [...remoteOrder, ...added];
-      // 去重
-      return [...new Set(mergedOrder)];
-    });
-    toast('已合并云端数据', 'success');
-  }, [serverMode, setBoards, setBoardOrder, toast]);
-
   const toggleTheme = useCallback(() => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   }, [setTheme]);
