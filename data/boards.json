@@ -4,31 +4,31 @@
       "id": "brd-1-1782124680847",
       "stocks": [
         {
-          "changePercent": 0.27,
+          "changePercent": 0.29,
           "code": "600036",
           "id": "stk-2-1782124686173",
           "market": "sh",
           "name": "招商银行",
           "prevClose": 37.65,
-          "price": 37.75
+          "price": 37.76
         },
         {
-          "changePercent": -5.68,
+          "changePercent": -5.65,
           "code": "601899",
           "id": "stk-1-1782177405889",
           "market": "sh",
           "name": "紫金矿业",
           "prevClose": 30.44,
-          "price": 28.71
+          "price": 28.72
         },
         {
           "id": "stk-1-1782178143300",
           "code": "300502",
           "name": "新易盛",
           "market": "sz",
-          "price": 566.01,
+          "price": 565.89,
           "prevClose": 579.97,
-          "changePercent": -2.41
+          "changePercent": -2.43
         }
       ],
       "title": "新板块 1"
