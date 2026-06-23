@@ -8,7 +8,7 @@ import { useLocalStorage } from './hooks/useLocalStorage';
 import { useRealtimePrices } from './hooks/useRealtimePrices';
 import { useToast } from './hooks/useToast';
 import { genId } from './data/utils';
-import { loadFromServer, saveToServer, isServerMode, setGitHubToken } from './data/apiClient';
+import { loadFromServer, saveToServer, isServerMode } from './data/apiClient';
 import type { Board, Stock, ThemeMode, ToastItem } from './types';
 
 // 数据版本 — 每次重大变更时递增，自动重置旧缓存
@@ -33,10 +33,6 @@ export default function App() {
   const [lastUpdateTime, setLastUpdateTime] = useState<string>('');
   const [apiStatus, setApiStatus] = useState<'fetching' | 'ok' | 'unavailable'>('fetching');
   const toast = useToast(setToasts);
-
-  // Token 配置 UI
-  const [showTokenModal, setShowTokenModal] = useState(!isServerMode());
-  const [tokenInput, setTokenInput] = useState('');
 
   // 判断是否启用服务端模式（GitHub Pages 构建时注入 token）
   const serverMode = isServerMode();
@@ -90,18 +86,8 @@ export default function App() {
   });
 
   // === 云端同步 ===
-  const handleTokenSubmit = useCallback(() => {
-    const t = tokenInput.trim();
-    if (!t) return;
-    setGitHubToken(t);
-    setShowTokenModal(false);
-    toast('Token 已保存', 'success');
-    // 重新加载 UI（页面刷新组件会重新检测 token）
-    window.location.reload();
-  }, [tokenInput, toast]);
-
   const handleUploadData = useCallback(async () => {
-    if (!serverMode) { toast('请先设置 GitHub Token', 'error'); return; }
+    if (!serverMode) { toast('服务端未配置，数据仅存本地', 'error'); return; }
     const clean: Record<string, Board> = {};
     for (const [id, b] of Object.entries(boards)) {
       clean[id] = { ...b, stocks: b.stocks.map((s) => ({
@@ -116,7 +102,7 @@ export default function App() {
   }, [serverMode, boards, boardOrder, toast]);
 
   const handleDownloadData = useCallback(async () => {
-    if (!serverMode) { toast('请先设置 GitHub Token', 'error'); return; }
+    if (!serverMode) { toast('服务端未配置，数据仅存本地', 'error'); return; }
     const data = await loadFromServer();
     if (!data || Object.keys(data.boards).length === 0) {
       toast('云端暂无数据', 'info');
@@ -332,26 +318,6 @@ export default function App() {
 
   return (
     <div className={styles.appContainer}>
-      {/* Token 设置弹窗 */}
-      {showTokenModal && (
-        <div className={styles.loginOverlay}>
-          <div className={styles.loginBox}>
-            <div className={styles.loginLogo}>🔑</div>
-            <div className={styles.loginTitle}>设置 GitHub Token</div>
-            <div className={styles.loginSub}>用于云端同步，Token 仅存于你的浏览器</div>
-            <input
-              className={styles.loginInput}
-              type="password"
-              placeholder="粘贴 GitHub Personal Access Token"
-              value={tokenInput}
-              onChange={(e) => setTokenInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleTokenSubmit()}
-              autoFocus
-            />
-            <button className={styles.loginBtn} onClick={handleTokenSubmit}>保存</button>
-          </div>
-        </div>
-      )}
       <Navbar
         theme={theme}
         intervalMs={intervalMs}
