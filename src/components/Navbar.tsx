@@ -15,6 +15,8 @@ interface NavbarProps {
   onToggleSimulation: () => void;
   onAddBoard: () => void;
   onRefreshPrices: () => void;
+  /** 窄屏下开合左侧抽屉（桌面端按钮不显示） */
+  onToggleSider?: () => void;
 }
 
 export default function Navbar({
@@ -28,6 +30,7 @@ export default function Navbar({
   onToggleSimulation,
   onAddBoard,
   onRefreshPrices,
+  onToggleSider,
 }: NavbarProps) {
   const intervals = [
     { label: '1s', value: 1000 },
@@ -40,6 +43,14 @@ export default function Navbar({
   return (
     <nav className={styles.navbar}>
       <div className={styles.navLeft}>
+        {onToggleSider && (
+          <button type="button" className={styles.menuBtn} onClick={onToggleSider} aria-label="切换导航">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 6h18" /><path d="M3 12h18" /><path d="M3 18h18" />
+            </svg>
+          </button>
+        )}
+        <div className={styles.logoWrap}>
         <div className={styles.logo}>
           <span className={styles.logoIcon}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -50,6 +61,7 @@ export default function Navbar({
             </svg>
           </span>
           <span>灵犀茶馆</span>
+        </div>
         </div>
         <div className={styles.status}>
           <span

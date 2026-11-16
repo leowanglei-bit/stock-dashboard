@@ -7,6 +7,7 @@
 .boardWrapper {
   transition: transform 0.15s, box-shadow 0.15s;
   border-radius: 12px;
+  scroll-margin-top: 1rem;
 }
 
 .boardDropTarget {

@@ -48,6 +48,7 @@ export default function SectionGroup({
         return (
           <div
             key={bid}
+            id={`board-${bid}`}
             className={`${styles.boardWrapper} ${dragOverBoardId === bid ? styles.boardDropTarget : ''}`}
             onDragOver={(e) => { onBoardDragOver(e); setDragOverBoardId(bid); }}
             onDragLeave={() => setDragOverBoardId(null)}

@@ -140,3 +140,33 @@
   box-shadow: 0 4px 12px var(--primary-glow);
   transform: translateY(-1px);
 }
+
+/* 顶栏汉堡按钮：桌面端隐藏（原生 button，避免被 antd .ant-btn 的 display 覆盖） */
+.menuBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.menuBtn:hover {
+  background: var(--primary-glow);
+  color: var(--text-bright);
+}
+
+/* 桌面端侧栏已有品牌，顶栏 logo 只在窄屏出现 */
+@media (min-width: 901px) {
+  .logoWrap {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .menuBtn {
+    display: inline-flex;
+  }
+}

@@ -35,7 +35,8 @@
 
 | 层 | 选型 |
 |:---|:---|
-| 框架 | **Next.js 16（App Router，`output: 'export'` 静态导出）** ＋ React 19 ＋ TypeScript |
+| 框架 | **Next.js 16（App Router，`output: 'export'` 静态导出）** ＋ React 19 ＋ TypeScript；3 个静态路由：`/` 看板、`/settings` 设置、`/about` 关于 |
+| 布局 | 左侧固定导航（≤900px 收成抽屉）＋ 顶栏行情控制；状态由 `src/App.tsx` 的 `DashboardProvider` 跨路由共享 |
 | UI | **Ant Design 6**（cssinjs 主题，`ConfigProvider` 跟随暗/亮主题）＋ **Tailwind CSS 3**（颜色全部映射到 `src/index.css` 的 CSS 变量）＋ CSS Modules |
 | 字体 | `next/font/local` 自托管 Inter（不依赖 Google Fonts） |
 | 数据 | `@supabase/supabase-js`（浏览器端直连）＋ 新浪/腾讯行情 API |
@@ -102,8 +103,10 @@ npm run preview                                   # 本地静态预览 out/：ht
 
 ```
 app/                         # Next.js App Router
-├── layout.tsx               # 全局布局：Inter 字体、metadata、AntdRegistry
-├── page.tsx                 # 首页（客户端动态加载 src/App）
+├── layout.tsx               # 全局布局：Inter 字体、metadata、AntdRegistry、AppShell
+├── page.tsx                 # / 看板（板块网格）
+├── settings/page.tsx        # /settings 设置（行情、外观、数据）
+├── about/page.tsx           # /about 关于
 ├── not-found.tsx            # 404
 ├── globals.css              # Tailwind 指令 + 引入 src/index.css
 └── fonts/                   # 自托管 Inter woff2
@@ -112,8 +115,11 @@ tailwind.config.mjs          # Tailwind 3，颜色映射到既有 CSS 变量
 postcss.config.mjs           # postcss-import + tailwindcss + autoprefixer
 
 src/
+├── App.tsx                  # DashboardProvider：全部业务状态（板块/行情/同步/主题）
+├── store/context.ts         # 上述状态的 Context 与 useDashboard()
 ├── components/
-│   ├── Navbar.tsx           # 顶部导航栏（antd Button/Select/Tooltip）
+│   ├── AppShell.tsx         # 外壳：左侧导航 + 顶栏 + 内容区 + 全局弹窗/提示
+│   ├── Navbar.tsx           # 顶栏（antd Button/Select/Tooltip）
 │   ├── SectionGroup.tsx     # 板块网格容器
 │   ├── BoardCard.tsx        # 板块卡片
 │   ├── StockRow.tsx         # 股票行
@@ -134,7 +140,6 @@ src/
 │   ├── useRealtimePrices.ts
 │   └── useToast.ts
 ├── types/index.ts
-├── App.tsx                  # 应用主体（ConfigProvider 主题 + 业务状态）
 ├── index.css                # 主题 CSS 变量 + CSS Modules 之外的全局样式
 └── App.module.css
 ```

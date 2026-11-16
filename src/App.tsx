@@ -1,27 +1,33 @@
 'use client';
 
+/**
+ * 全局业务状态（Provider）
+ *
+ * 多路由（看板 / 设置 / 关于）共享同一份板块数据、行情轮询与云端同步，状态必须活在路由之上，
+ * 否则切页会重建 state、重复拉行情。业务逻辑与迁移前逐行一致，只是 JSX 骨架搬到了
+ * src/components/AppShell.tsx 与 app/ 下的页面。
+ * context 与 hook 在 src/store/context.ts（拆开是为了 Fast Refresh 生效）。
+ */
+
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { ConfigProvider, theme as antdTheme } from 'antd';
+import { theme as antdTheme } from 'antd';
 import type { ThemeConfig } from 'antd';
-import styles from './App.module.css';
-import Navbar from './components/Navbar';
-import SectionGroup from './components/SectionGroup';
-import Modal from './components/Modal';
-import ToastContainer from './components/ToastContainer';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useRealtimePrices } from './hooks/useRealtimePrices';
 import { useToast } from './hooks/useToast';
 import { genId } from './data/utils';
 import { loadFromServer, saveToServer, isServerMode } from './data/apiClient';
+import { DashboardContext } from './store/context';
+import type { DashboardContextValue, ModalState } from './store/context';
 import type { Board, Stock, ThemeMode, ToastItem } from './types';
 
 // 数据版本 — 每次重大变更时递增，自动重置旧缓存
 const DATA_VERSION = 'v3';
 const VERSION_KEY = 'stock_data_version';
 
-export default function App() {
+export function DashboardProvider({ children }: { children: React.ReactNode }) {
   // 检查版本，不一致则清除旧数据
-  if (localStorage.getItem(VERSION_KEY) !== DATA_VERSION) {
+  if (typeof window !== 'undefined' && localStorage.getItem(VERSION_KEY) !== DATA_VERSION) {
     localStorage.removeItem('stock_boards');
     localStorage.removeItem('stock_board_order');
     localStorage.setItem(VERSION_KEY, DATA_VERSION);
@@ -33,7 +39,7 @@ export default function App() {
   const [boards, setBoards] = useLocalStorage<Record<string, Board>>('stock_boards', {});
   const [boardOrder, setBoardOrder] = useLocalStorage<string[]>('stock_board_order', []);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
-  const [modal, setModal] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
+  const [modal, setModal] = useState<ModalState | null>(null);
   const [lastUpdateTime, setLastUpdateTime] = useState<string>('');
   const [apiStatus, setApiStatus] = useState<'fetching' | 'ok' | 'unavailable'>('fetching');
   const toast = useToast(setToasts);
@@ -41,7 +47,10 @@ export default function App() {
   // 判断是否启用服务端模式
   const serverMode = isServerMode();
   const boardOrderRef = useRef(boardOrder);
-  boardOrderRef.current = boardOrder;
+
+  useEffect(() => {
+    boardOrderRef.current = boardOrder;
+  }, [boardOrder]);
 
   useEffect(() => {
     if (serverMode) {
@@ -83,7 +92,7 @@ export default function App() {
           if (!lBoard) {
             merged[bid] = rBoard;
           } else {
-            const localCodes = new Set(lBoard.stocks.map((s: any) => s.code));
+            const localCodes = new Set(lBoard.stocks.map((s: Stock) => s.code));
             const mergedStocks = [...lBoard.stocks];
             for (const rs of rBoard.stocks) {
               if (!localCodes.has(rs.code)) mergedStocks.push(rs);
@@ -207,12 +216,12 @@ export default function App() {
     e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'stock', stockId, boardId }));
   }, []);
 
-  const handleDragOverBoard = useCallback((e: React.DragEvent, _boardId: string) => {
+  const handleDragOverBoard = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
   }, []);
 
-  const handleDragOverStock = useCallback((e: React.DragEvent, _stockId: string, _boardId: string) => {
+  const handleDragOverStock = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
   }, []);
@@ -305,11 +314,35 @@ export default function App() {
     e.dataTransfer.dropEffect = 'move';
   }, []);
 
-  // === RESET ===
-  const handleRefreshPrices = useCallback(() => {
-    refreshPrices();
-    toast('正在刷新行情...', 'info');
-  }, [refreshPrices, toast]);
+  // === 数据管理（设置页） ===
+  const pullFromServer = useCallback(async () => {
+    if (!serverMode) {
+      toast('未配置云端同步（缺少 Supabase 环境变量）', 'error');
+      return false;
+    }
+    const data = await loadFromServer();
+    if (!data || Object.keys(data.boards).length === 0) {
+      toast('云端暂无数据', 'info');
+      return false;
+    }
+    setBoards(data.boards as Record<string, Board>);
+    if (data.boardOrder?.length > 0) setBoardOrder(data.boardOrder);
+    toast('已从云端加载数据', 'success');
+    return true;
+  }, [serverMode, setBoards, setBoardOrder, toast]);
+
+  const clearLocalData = useCallback(() => {
+    setModal({
+      title: '清空本地数据',
+      message: '将删除本机保存的全部板块与股票。云端数据不受影响，刷新后可能被重新拉回。确定继续？',
+      onConfirm: () => {
+        setBoards({});
+        setBoardOrder([]);
+        setModal(null);
+        toast('本地数据已清空', 'info');
+      },
+    });
+  }, [setBoards, setBoardOrder, toast]);
 
   // antd 主题：跟随应用自身的 dark/light 模式，主色对齐 CSS 变量 --primary
   const antdThemeConfig: ThemeConfig = {
@@ -324,58 +357,44 @@ export default function App() {
     },
   };
 
-  return (
-    <ConfigProvider theme={antdThemeConfig}>
-      <div className={styles.appContainer}>
-      <Navbar
-        theme={theme}
-        intervalMs={intervalMs}
-        simulationActive={simulationActive}
-        lastUpdateTime={lastUpdateTime}
-        apiStatus={apiStatus}
-        onToggleTheme={toggleTheme}
-        onIntervalChange={setIntervalMs}
-        onToggleSimulation={toggleSimulation}
-        onAddBoard={addBoard}
-        onRefreshPrices={handleRefreshPrices}
-      />
-      <div className={styles.mainContent}>
-        <SectionGroup
-          boards={boards}
-          boardOrder={boardOrder}
-          draggingStockId={draggingStockId}
-          onRenameBoard={renameBoard}
-          onDeleteBoard={deleteBoard}
-          onAddStock={addStock}
-          onDeleteStock={deleteStock}
-          onDragStart={handleDragStart}
-          onDragOverBoard={handleDragOverBoard}
-          onDragOverStock={handleDragOverStock}
-          onDropOnBoard={handleDropOnBoard}
-          onDropOnStock={handleDropOnStock}
-          onBoardDragStart={handleBoardDragStart}
-          onBoardDropOnReorder={handleBoardDropOnReorder}
-          onBoardDragOver={handleBoardDragOver}
-        />
-      </div>
-      <div className={styles.footer}>
-        <span className={styles.footerText}>心有灵犀 谈笑间 众生皆有回响</span>
-        <span className={styles.footerSep}> ｜ </span>
-        <span className={styles.footerText}>味归平淡 静思处 乾坤尽纳一盏</span>
-      </div>
-      <ToastContainer toasts={toasts} />
-      {modal && (
-        <Modal
-          title={modal.title}
-          onCancel={() => setModal(null)}
-          onConfirm={modal.onConfirm}
-          confirmText="确定"
-          danger
-        >
-          {modal.message}
-        </Modal>
-      )}
-      </div>
-    </ConfigProvider>
-  );
+  const value: DashboardContextValue = {
+    boards,
+    boardOrder,
+    serverMode,
+    intervalMs,
+    setIntervalMs,
+    simulationActive,
+    toggleSimulation,
+    lastUpdateTime,
+    apiStatus,
+    refreshPrices,
+    theme,
+    setTheme,
+    toggleTheme,
+    antdThemeConfig,
+    toasts,
+    toast,
+    modal,
+    setModal,
+    addBoard,
+    renameBoard,
+    deleteBoard,
+    addStock,
+    deleteStock,
+    draggingStockId,
+    handleDragStart,
+    handleDragOverBoard,
+    handleDragOverStock,
+    handleDropOnBoard,
+    handleDropOnStock,
+    handleBoardDragStart,
+    handleBoardDropOnReorder,
+    handleBoardDragOver,
+    pullFromServer,
+    clearLocalData,
+  };
+
+  return <DashboardContext.Provider value={value}>{children}</DashboardContext.Provider>;
 }
+
+export default DashboardProvider;
