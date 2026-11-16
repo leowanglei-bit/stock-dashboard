@@ -5,6 +5,10 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # 每天 21:40 UTC（= 05:40 CST）刷新宽基估值后再构建部署。
+  # 注意：数据源本身是周频采样，多数日子刷新结果不变，页面「数据日」不会天天变。
+  schedule:
+    - cron: '40 21 * * *'
 
 permissions:
   contents: read
@@ -33,6 +37,14 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      # 定时/手动触发时才重新取估值（push 构建用仓库里的 JSON，避免外网接口故障挡住发布）
+      - name: Refresh index valuation
+        if: github.event_name != 'push'
+        run: |
+          npm run refresh:valuation || {
+            echo "::warning title=估值刷新失败::沿用仓库内 src/data/indexValuation.json，页面数据日会停在旧值";
+          }
 
       - name: Build
         run: npm run build
