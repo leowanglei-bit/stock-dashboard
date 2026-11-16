@@ -2,6 +2,8 @@
 
 > 本文件供 AI agent 与协作者阅读。所有命令与基线均为**实测记录**，不是推测。
 > 基线采集：2026-10-22，macOS 26.6.2（Vite 时代）；2026-11-16 迁移到 Next.js 后重测。
+> **维护约定**：只在①门禁数字变 ②目录/路由结构变 ③约束或禁改区变 时更新本文件；
+> 文案、样式、组件内部实现与踩坑过程一律不写这里（写代码注释）。文档改动单独用 `docs:` 提交。
 
 ## 1. 这是什么
 
@@ -89,18 +91,12 @@ GitHub Pages 走子路径时资源前缀靠 `NEXT_PUBLIC_BASE_PATH` 注入 `base
   否则切路由会重建、行情轮询会重复。
 - **新增页面＝两处**：建 `app/<name>/page.tsx`，并在 `src/components/AppShell.tsx` 的 `NAV` 里加一项
   （图标 + `href` + 文案）；侧栏高亮按 `usePathname()` 精确匹配 `href`。
-- **顶栏分两层，别混**：`SiteHeader` 是全局顶栏（56px，对标 etf.maxmeng.top：汉堡 + 品牌 +
-  消息 + 个人中心），所有路由一致，只放站点级入口；`BoardToolbar` 是「自选」页工具条
-  （行情状态 / 刷新间隔 / 暂停 / 主题 / 手动刷新 / 新增板块），**只由 `app/page.tsx` 渲染**。
-  页面级操作不要加进 `SiteHeader`，否则又会变成全局按钮。
-- **布局关系（对标 etf.maxmeng.top，别改回去）**：`.shell` 纵向 flex，`SiteHeader` 是**第一行、横贯整宽**；
-  `.body` 才是「侧栏 + 内容」的横向容器，`<aside>` 从顶栏下沿开始（y=56、高 100vh−56）。
-  把 aside 放回 shell 的第一行、或让顶栏只覆盖内容列，都是错的。
-- **汉堡按钮两种语义**：窄屏开合抽屉（顶栏保持可点），桌面折叠侧栏＝不渲染 `<aside>`；
-  不要用 CSS 把侧栏宽度压 0，条件渲染才可靠。品牌在顶栏，侧栏没有 logo 行。
-- **品牌资源只有一处真源**：`public/Icon-60@3x.png`（180×180），站点图标与顶栏 logo 全走
-  `src/lib/assets.ts` 的 `SITE_ICON`。裸 `<img src="/x.png">` 在 Pages 子路径部署下会 404
-  （`<img>` 不会自动加 `basePath`），新增静态图一律用 `asset('/path')` 拼前缀。
+- **UI 归属**：`SiteHeader`＝全局顶栏（汉堡 / 品牌 / 消息 / 个人中心，全路由一致，只放站点级入口）；
+  `BoardToolbar`＝「自选」页工具条（行情 / 刷新类按钮），只由 `app/page.tsx` 渲染，别加进 SiteHeader。
+- **布局与侧栏**：外壳纵向——顶栏是第一行、横贯整宽，`.body` 才是「侧栏 + 内容」的横向容器；
+  折叠侧栏＝不渲染 `<aside>`，别用 CSS 压宽度（品牌在顶栏，侧栏没有 logo 行）。
+- **静态资源**：`public/Icon-60@3x.png` 是站点图标与顶栏 logo 的唯一来源，路径走
+  `src/lib/assets.ts` 的 `SITE_ICON`/`asset()`（裸 `<img>` 不带 `basePath`，子路径部署会 404）。
 - 业务状态读 localStorage（板块、主题、刷新间隔），必须**水合后**再渲染：`AppShell` 用
   `useSyncExternalStore` 判断客户端，首屏只吐一个 loading 占位。别把 provider 挪到预渲染路径上，
   否则静态导出会因 `localStorage` 未定义而失败。
