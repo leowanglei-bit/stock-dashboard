@@ -21,26 +21,6 @@
   gap: 1.5rem;
 }
 
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: var(--text-bright);
-}
-
-.logoIcon {
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 6px;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .status {
   display: flex;
   align-items: center;
@@ -158,12 +138,22 @@
   color: var(--text-bright);
 }
 
-/* 桌面端侧栏已有品牌，顶栏 logo 只在窄屏出现 */
+/* 非自选页的空顶栏：桌面上不占位（整条隐藏），窄屏只显示汉堡按钮 */
+.navbarBare {
+  justify-content: flex-end;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  backdrop-filter: none;
+  border-bottom: none;
+}
+
 @media (min-width: 901px) {
-  .logoWrap {
+  .navbarBare {
     display: none;
   }
 }
+
+/* 桌面端侧栏已有品牌，顶栏不再放 logo（顶栏内容已按页面收窄到「自选」页操作） */
 
 @media (max-width: 900px) {
   .menuBtn {

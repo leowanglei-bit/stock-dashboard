@@ -35,8 +35,8 @@
 
 | 层 | 选型 |
 |:---|:---|
-| 框架 | **Next.js 16（App Router，`output: 'export'` 静态导出）** ＋ React 19 ＋ TypeScript；3 个静态路由：`/` 看板、`/settings` 设置、`/about` 关于 |
-| 布局 | 左侧固定导航（≤900px 收成抽屉）＋ 顶栏行情控制；状态由 `src/App.tsx` 的 `DashboardProvider` 跨路由共享 |
+| 框架 | **Next.js 16（App Router，`output: 'export'` 静态导出）** ＋ React 19 ＋ TypeScript；3 个静态路由：`/` 自选、`/settings` 设置、`/about` 关于 |
+| 布局 | 左侧固定导航（≤900px 收成抽屉）＋ 仅「自选」页使用的顶栏行情控制（其余页面顶栏为空）；状态由 `src/App.tsx` 的 `DashboardProvider` 跨路由共享 |
 | UI | **Ant Design 6**（cssinjs 主题，`ConfigProvider` 跟随暗/亮主题）＋ **Tailwind CSS 3**（颜色全部映射到 `src/index.css` 的 CSS 变量）＋ CSS Modules |
 | 字体 | `next/font/local` 自托管 Inter（不依赖 Google Fonts） |
 | 数据 | `@supabase/supabase-js`（浏览器端直连）＋ 新浪/腾讯行情 API |
@@ -104,7 +104,7 @@ npm run preview                                   # 本地静态预览 out/：ht
 ```
 app/                         # Next.js App Router
 ├── layout.tsx               # 全局布局：Inter 字体、metadata、AntdRegistry、AppShell
-├── page.tsx                 # / 看板（板块网格）
+├── page.tsx                 # / 自选（板块网格）
 ├── settings/page.tsx        # /settings 设置（行情、外观、数据）
 ├── about/page.tsx           # /about 关于
 ├── not-found.tsx            # 404
@@ -119,7 +119,7 @@ src/
 ├── store/context.ts         # 上述状态的 Context 与 useDashboard()
 ├── components/
 │   ├── AppShell.tsx         # 外壳：左侧导航 + 顶栏 + 内容区 + 全局弹窗/提示
-│   ├── Navbar.tsx           # 顶栏（antd Button/Select/Tooltip）
+│   ├── Navbar.tsx           # 顶栏：variant='board' 完整操作区 / 'bare' 空顶栏（仅窄屏汉堡）
 │   ├── SectionGroup.tsx     # 板块网格容器
 │   ├── BoardCard.tsx        # 板块卡片
 │   ├── StockRow.tsx         # 股票行
@@ -134,7 +134,8 @@ src/
 │   ├── fullStocks.ts        # 7214 只 A 股
 │   └── utils.ts             # 工具函数
 ├── lib/
-│   └── supabase.ts          # Supabase 客户端（NEXT_PUBLIC_* 环境变量）
+│   ├── supabase.ts          # Supabase 客户端（NEXT_PUBLIC_* 环境变量）
+│   └── assets.ts            # basePath 前缀 + SITE_ICON（public/Icon-60@3x.png）
 ├── hooks/
 │   ├── useLocalStorage.ts
 │   ├── useRealtimePrices.ts

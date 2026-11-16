@@ -3,7 +3,9 @@
 /**
  * 应用外壳（对标 etf.maxmeng.top 的形态）：左侧固定导航 + 顶栏 + 内容区。
  *
- * 左侧栏承载三类入口：主菜单（看板 / 设置 / 关于）、板块快速定位、底部署名。
+ * 左侧栏承载三类入口：主菜单（自选 / 设置 / 关于）、板块快速定位、底部署名。
+ * 右侧顶栏只服务「自选」页（行情状态 + 刷新间隔 + 手动刷新 + 新增板块），
+ * 其余页面顶栏为空（桌面端不渲染，窄屏只留开合侧栏的汉堡按钮）。
  * 窄屏（≤900px）时侧栏改为抽屉，由顶栏的汉堡按钮开合。
  */
 
@@ -17,6 +19,7 @@ import Modal from './Modal';
 import ToastContainer from './ToastContainer';
 import { DashboardProvider } from '../App';
 import { useDashboard } from '../store/context';
+import { SITE_ICON } from '../lib/assets';
 
 // 客户端标记：静态导出预渲染时返回 false（首屏只吐一个 loading 占位），水合后返回 true
 const emptySubscribe = () => () => {};
@@ -25,7 +28,7 @@ const useIsClient = () => useSyncExternalStore(emptySubscribe, () => true, () =>
 const NAV = [
   {
     href: '/',
-    label: '看板',
+    label: '自选',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <rect x="3" y="3" width="7" height="9" rx="1.5" />
@@ -79,14 +82,7 @@ function Shell({ children }: { children: React.ReactNode }) {
       <div className={styles.shell}>
         <aside className={`${styles.sider} ${siderOpen ? styles.siderOpen : ''}`}>
           <Link href="/" className={styles.brand}>
-            <span className={styles.brandIcon}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6">
-                <path d="M3 3v16a2 2 0 0 0 2 2h16" />
-                <path d="M18 17V9" />
-                <path d="M13 17V5" />
-                <path d="M8 17v-3" />
-              </svg>
-            </span>
+            <img src={SITE_ICON} alt="灵犀茶馆" className={styles.brandIcon} width={26} height={26} />
             <span>灵犀茶馆</span>
           </Link>
 
@@ -127,17 +123,14 @@ function Shell({ children }: { children: React.ReactNode }) {
             </div>
           )}
 
-          <div className={styles.siderFoot}>
-            心有灵犀 谈笑间
-            <br />
-            众生皆有回响
-          </div>
+          <div className={styles.siderFoot}>藏经阁</div>
         </aside>
 
         {siderOpen && <div className={styles.backdrop} onClick={() => setSiderOpen(false)} />}
 
         <div className={styles.right}>
           <Navbar
+            variant={current === '/' ? 'board' : 'bare'}
             theme={d.theme}
             intervalMs={d.intervalMs}
             simulationActive={d.simulationActive}

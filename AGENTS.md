@@ -24,7 +24,7 @@
 ## 3. 目录
 
 ```
-app/            layout.tsx（AppShell 外壳）/ page.tsx（/ 看板）/ settings/ / about/ / not-found.tsx
+app/            layout.tsx（AppShell 外壳）/ page.tsx（/ 自选）/ settings/ / about/ / not-found.tsx
                 globals.css / fonts
 src/            App.tsx（DashboardProvider：全部业务状态）
                 store/context.ts（Context + useDashboard）
@@ -89,6 +89,12 @@ GitHub Pages 走子路径时资源前缀靠 `NEXT_PUBLIC_BASE_PATH` 注入 `base
   否则切路由会重建、行情轮询会重复。
 - **新增页面＝两处**：建 `app/<name>/page.tsx`，并在 `src/components/AppShell.tsx` 的 `NAV` 里加一项
   （图标 + `href` + 文案）；侧栏高亮按 `usePathname()` 精确匹配 `href`。
+- **顶栏只服务「自选」页**：`AppShell` 按 `current === '/'` 传 `Navbar variant='board'`，其余路由
+  `variant='bare'`（桌面端整条 `display:none`，窄屏只留开合抽屉的汉堡）。行情状态、刷新间隔、
+  手动刷新、新增板块都是自选页专属，**不要**加回全局外壳；新增全局操作优先放设置页。
+- **品牌资源只有一处真源**：`public/Icon-60@3x.png`（180×180），图标/侧栏 logo 全走
+  `src/lib/assets.ts` 的 `SITE_ICON`。裸 `<img src="/x.png">` 在 Pages 子路径部署下会 404
+  （`<img>` 不会自动加 `basePath`），新增静态图一律用 `asset('/path')` 拼前缀。
 - 业务状态读 localStorage（板块、主题、刷新间隔），必须**水合后**再渲染：`AppShell` 用
   `useSyncExternalStore` 判断客户端，首屏只吐一个 loading 占位。别把 provider 挪到预渲染路径上，
   否则静态导出会因 `localStorage` 未定义而失败。

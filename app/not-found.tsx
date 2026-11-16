@@ -9,7 +9,7 @@ export default function NotFound() {
         href="/"
         className="rounded-lg border border-line bg-card px-4 py-2 text-sm text-fg transition hover:border-brand"
       >
-        回到看板
+        回到自选
       </Link>
     </main>
   );

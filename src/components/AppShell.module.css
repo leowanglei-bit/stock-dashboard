@@ -36,13 +36,11 @@
 .brandIcon {
   width: 1.6rem;
   height: 1.6rem;
-  border-radius: 6px;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-radius: 7px;
   flex-shrink: 0;
+  object-fit: cover;
+  /* 图标自带深底，亮色主题下加一圈描边免得糊在白底上 */
+  box-shadow: 0 0 0 1px var(--border-color);
 }
 
 .navGroup {
