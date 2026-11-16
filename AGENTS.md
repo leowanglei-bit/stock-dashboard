@@ -19,7 +19,8 @@
   （宽基估值，由 `npm run refresh:valuation` 跑 `scripts/fetch_index_valuation.mjs` 从蛋卷接口生成；
   页面不请求外网，改数据要重跑脚本并提交 JSON）
 - 工具链：`eslint`（flat config）＋ `typescript-eslint`
-- 部署：GitHub Actions → `next build` → 上传 `out/` → GitHub Pages（子路径 `/stock-dashboard/`）
+- 部署：GitHub Actions → `next build` → 上传 `out/` → GitHub Pages（子路径 `/stock-dashboard/`）；
+  `schedule` 每天 05:40 CST 先跑 `refresh:valuation` 再构建（push 构建不跑，避免外网接口挡住发布）
 - **已移除（2026-11-16 Vite 清理，见 git 历史）**：`index.html`、`vite.config.ts`、`src/main.tsx`、
   `tsconfig.app.json`、`tsconfig.node.json`，以及 devDependencies 里的 `vite` / `@vitejs/plugin-react`
 - `next-env.d.ts` 由 Next 自动生成：`next dev` 会把它改成 `.next/dev/types/...`、`next build` 又改回
