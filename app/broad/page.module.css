@@ -173,6 +173,22 @@
   color: var(--text-bright);
 }
 
+.tag {
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: 5px;
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  background: var(--row-bg);
+  border: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.faqAfterTable {
+  margin-top: 0.6rem;
+}
+
 .faqList {
   margin: 0;
   padding-left: 1.1rem;

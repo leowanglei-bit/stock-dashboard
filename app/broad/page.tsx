@@ -119,6 +119,62 @@ export default function BroadValuationPage() {
         </ul>
       </section>
 
+      {/* 中证2000：主数据源未覆盖，只有中证官方 PE 序列，单独成块，绝不并进主表 */}
+      {data.supplement.map((row) => (
+        <section key={row.code} className={styles.faq}>
+          <h2 className={styles.faqTitle}>
+            补充：{row.name}（{row.code}）<span className={styles.tag}>官方口径 · 仅 PE</span>
+          </h2>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th className={styles.thIndex}>指标</th>
+                  <th className={styles.thNum}>现值</th>
+                  {WINDOWS.map((w) => (
+                    <th key={`sup-${w}`} className={styles.thNum}>
+                      {WINDOW_LABEL[w]}
+                    </th>
+                  ))}
+                  <th className={styles.thNum}>数据起</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className={styles.tdIndex}>
+                    <span className={styles.name}>PE-TTM</span>
+                  </td>
+                  <td className={`${styles.tdNum} ${styles.cur}`}>{row.pe.toFixed(2)}</td>
+                  {WINDOWS.map((w) => (
+                    <td key={`sup-${row.code}-${w}`} className={styles.tdNum}>
+                      <Pct value={row.pePct[w]} />
+                    </td>
+                  ))}
+                  <td className={styles.tdNum}>{row.startDate}</td>
+                </tr>
+                <tr>
+                  <td className={styles.tdIndex}>
+                    <span className={styles.name}>PB</span>
+                  </td>
+                  <td className={`${styles.tdNum} ${styles.na}`}>—</td>
+                  {WINDOWS.map((w) => (
+                    <td key={`sup-pb-${w}`} className={`${styles.tdNum} ${styles.na}`}>
+                      —
+                    </td>
+                  ))}
+                  <td className={`${styles.tdNum} ${styles.na}`}>—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ul className={`${styles.faqList} ${styles.faqAfterTable}`}>
+            <li>{row.source}，与上表口径不同（实测沪深300 差 2.6%、中证500 差 21%、中证1000 差 33%），<strong>不可与上表横向比较</strong>。</li>
+            <li>该指数无公开 PB 历史序列（中证官方无 PB 接口），PB 行留空，不推算。</li>
+            <li>历史自 {row.startDate} 起（{row.points} 个交易日），故 5 年 / 10 年窗口不足，标「—」。</li>
+          </ul>
+        </section>
+      ))}
+
       <section className={styles.faq}>
         <h2 className={styles.faqTitle}>暂未覆盖的宽基</h2>
         <ul className={styles.faqList}>

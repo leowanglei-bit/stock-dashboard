@@ -33,20 +33,28 @@ const INDICES = [
   { code: '000688', name: '科创50', dj: 'SH000688' },
 ];
 
-/** 用户清单里有、但数据源没覆盖的指数：如实标注，不编数 */
+/** 用户清单里有、但主数据源没覆盖的指数：如实标注，不编数 */
 const UNCOVERED = [
   { code: '000906', name: '中证800', reason: '数据源无该指数序列' },
   { code: '000985', name: '中证全指', reason: '数据源无该指数序列' },
-  { code: '932000', name: '中证2000', reason: '数据源无该指数序列（2023 年发布，历史亦不足）' },
   { code: '930050', name: '中证A50', reason: '数据源无该指数序列（2024 年发布，历史亦不足）' },
 ];
+
+/**
+ * 蛋卷没覆盖、但中证指数官方有「中证估值」PE 日频序列的指数。
+ * 官方严格只给 PE（无 PB 接口，indexCsiDsPb 返回 404），且口径与蛋卷不同
+ * （实测 000300 差 2.6%，中证500 差 21%，中证1000 差 33%，科创50 差 39%），
+ * 因此单独成块输出，绝不并进主表。
+ */
+const OFFICIAL_PE = [{ code: '932000', name: '中证2000' }];
+const CSINDEX_PE = 'https://www.csindex.com.cn/csindex-home/perf/indexCsiDsPe';
 
 const WINDOWS = [1, 3, 5, 10];
 const YEAR_MS = 365.25 * 24 * 3600 * 1000;
 const MIN_SAMPLES = 30;
 
-async function getJson(url) {
-  const res = await fetch(url, { headers: HEADERS });
+async function getJson(url, extraHeaders = {}) {
+  const res = await fetch(url, { headers: { ...HEADERS, ...extraHeaders } });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText} ← ${url}`);
   return res.json();
 }
@@ -92,6 +100,33 @@ async function one(idx) {
   };
 }
 
+/** 官方 PE 序列（日频）：结构与百分位算法与主表一致，只是数据源不同 */
+async function officialPe(idx) {
+  const url = `${CSINDEX_PE}?indexCode=${idx.code}&startDate=20160101&endDate=20991231`;
+  const raw = await getJson(url, { Referer: 'https://www.csindex.com.cn/' });
+  const rows = (raw?.data ?? [])
+    .map((d) => ({ ts: Date.parse(`${d.tradeDate.slice(0, 4)}-${d.tradeDate.slice(4, 6)}-${d.tradeDate.slice(6, 8)}T00:00:00Z`), value: d.peg }))
+    .filter((p) => Number.isFinite(p.ts) && Number.isFinite(p.value) && p.value > 0);
+  if (rows.length === 0) throw new Error(`${idx.name}(${idx.code}) 官方 PE 序列为空`);
+
+  // 该接口会把「基准日」当成第一个点塞进来（932000 给 2016-01-01，与下一行相隔 7 年），
+  // 不剔掉会让 5/10 年窗口误判为「历史充足」，算出假百分位
+  while (rows.length > 1 && rows[1].ts - rows[0].ts > 60 * 24 * 3600 * 1000) rows.shift();
+
+  const lastTs = rows[rows.length - 1].ts;
+  const current = rows[rows.length - 1].value;
+  return {
+    code: idx.code,
+    name: idx.name,
+    pe: Math.round(current * 100) / 100,
+    pePct: Object.fromEntries(WINDOWS.map((y) => [`y${y}`, percentile(rows, current, y, lastTs)])),
+    startDate: fmtDate(rows[0].ts),
+    points: rows.length,
+    lastDate: fmtDate(lastTs),
+    source: '中证指数官方「中证估值」PE（indexCsiDsPe），与主表口径不同',
+  };
+}
+
 const items = [];
 for (const idx of INDICES) {
   const row = await one(idx);
@@ -101,7 +136,16 @@ for (const idx of INDICES) {
   items.push(row);
 }
 
-const lastDate = items.map((i) => i.lastDate).sort().at(-1);
+const supplement = [];
+for (const idx of OFFICIAL_PE) {
+  const row = await officialPe(idx);
+  console.log(
+    `[补充] ${row.name.padEnd(8)} PE ${String(row.pe).padStart(6)} / ${JSON.stringify(row.pePct)}  (${row.startDate} 起, ${row.points} 点)`,
+  );
+  supplement.push(row);
+}
+
+const lastDate = [...items, ...supplement].map((i) => i.lastDate).sort().at(-1);
 const payload = {
   updatedAt: lastDate,
   generatedAt: new Date().toISOString(),
@@ -109,6 +153,7 @@ const payload = {
   frequency: '周频采样（每周 1 个点），PE 为 PE-TTM',
   percentileNote: '百分位 = 窗口内「历史估值 ≤ 当前估值」的比例；窗口历史不完整则记为 null（界面显示「—」）',
   items,
+  supplement,
   uncovered: UNCOVERED,
 };
 

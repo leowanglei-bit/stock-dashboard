@@ -17,7 +17,8 @@
 - 字体：`next/font/local` 自托管 Inter（`app/fonts/*.woff2`），构建与运行都不访问 Google Fonts
 - 数据：`@supabase/supabase-js`、`src/data/sinaApi.ts`（新浪/腾讯行情）、`src/data/indexValuation.json`
   （宽基估值，由 `npm run refresh:valuation` 跑 `scripts/fetch_index_valuation.mjs` 从蛋卷接口生成；
-  页面不请求外网，改数据要重跑脚本并提交 JSON）
+  页面不请求外网，改数据要重跑脚本并提交 JSON；中证2000 无蛋卷序列，PE 改走中证官方
+  `perf/indexCsiDsPe`，口径不同故单独区块输出，**不要并进主表**）
 - 工具链：`eslint`（flat config）＋ `typescript-eslint`
 - 部署：GitHub Actions → `next build` → 上传 `out/` → GitHub Pages（子路径 `/stock-dashboard/`）；
   `schedule` 每天 05:40 CST 先跑 `refresh:valuation` 再构建（push 构建不跑，避免外网接口挡住发布）

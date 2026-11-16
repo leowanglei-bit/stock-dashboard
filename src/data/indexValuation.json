@@ -1,6 +1,6 @@
 {
-  "updatedAt": "2026-11-12",
-  "generatedAt": "2026-11-16T08:48:14.182Z",
+  "updatedAt": "2026-11-13",
+  "generatedAt": "2026-11-16T09:11:17.708Z",
   "source": "蛋卷基金 指数估值接口（danjuanfunds.com）",
   "frequency": "周频采样（每周 1 个点），PE 为 PE-TTM",
   "percentileNote": "百分位 = 窗口内「历史估值 ≤ 当前估值」的比例；窗口历史不完整则记为 null（界面显示「—」）",
@@ -153,6 +153,23 @@
       "lastDate": "2026-11-12"
     }
   ],
+  "supplement": [
+    {
+      "code": "932000",
+      "name": "中证2000",
+      "pe": 35.99,
+      "pePct": {
+        "y1": 4.6,
+        "y3": 44.5,
+        "y5": null,
+        "y10": null
+      },
+      "startDate": "2023-06-13",
+      "points": 892,
+      "lastDate": "2026-11-13",
+      "source": "中证指数官方「中证估值」PE（indexCsiDsPe），与主表口径不同"
+    }
+  ],
   "uncovered": [
     {
       "code": "000906",
@@ -163,11 +180,6 @@
       "code": "000985",
       "name": "中证全指",
       "reason": "数据源无该指数序列"
-    },
-    {
-      "code": "932000",
-      "name": "中证2000",
-      "reason": "数据源无该指数序列（2023 年发布，历史亦不足）"
     },
     {
       "code": "930050",
