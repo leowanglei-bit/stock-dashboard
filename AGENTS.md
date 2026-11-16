@@ -16,7 +16,11 @@
 - 数据：`@supabase/supabase-js`、`src/data/sinaApi.ts`（新浪/腾讯行情）
 - 工具链：`eslint`（flat config）＋ `typescript-eslint`
 - 部署：GitHub Actions → `next build` → 上传 `out/` → GitHub Pages（子路径 `/stock-dashboard/`）
-- **已移除**：Vite、`@vitejs/plugin-react`、`index.html`、`vite.config.ts`、`src/main.tsx`、`tsconfig.app.json`、`tsconfig.node.json`
+- **历史遗留（未删、仍是 git 跟踪文件）**：`index.html`、`vite.config.ts`、`src/main.tsx`、
+  `tsconfig.app.json`、`tsconfig.node.json`（Vite 时代产物，Next 构建不引用，属于可清理项）；
+  `devDependencies` 里仍留着 `vite` / `@vitejs/plugin-react`，`npm ci` 会多装它们但不影响构建
+- `next-env.d.ts` 由 Next 自动生成：`next dev` 会把它改成 `.next/dev/types/...`、`next build` 又改回
+  `.next/types/...` ⇒ 跑完 dev 后 `git status` 出现这一行改动是正常的，**不要手工编辑**，也不必提交
 
 ## 3. 目录
 
