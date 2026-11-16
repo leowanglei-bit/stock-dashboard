@@ -96,10 +96,8 @@ GitHub Pages 走子路径时资源前缀靠 `NEXT_PUBLIC_BASE_PATH` 注入 `base
 - **布局关系（对标 etf.maxmeng.top，别改回去）**：`.shell` 纵向 flex，`SiteHeader` 是**第一行、横贯整宽**；
   `.body` 才是「侧栏 + 内容」的横向容器，`<aside>` 从顶栏下沿开始（y=56、高 100vh−56）。
   把 aside 放回 shell 的第一行、或让顶栏只覆盖内容列，都是错的。
-- **汉堡按钮两种语义**：`toggleSider` 按窄屏分流——窄屏开合抽屉（`.siderOpen`，抽屉 `top:56px`，
-  顶栏保持可点），桌面折叠侧栏＝`hideSider` **不渲染 `<aside>`**。别用 CSS 类把宽度压 0：
-  实测构建产物里 `.siderCollapsed{width:0}` 会被 `.sider{width:220px}` 压住（提到 `.sider.siderCollapsed`
-  也无效），只有条件渲染稳。品牌在顶栏，侧栏没有 logo 行。
+- **汉堡按钮两种语义**：窄屏开合抽屉（顶栏保持可点），桌面折叠侧栏＝不渲染 `<aside>`；
+  不要用 CSS 把侧栏宽度压 0，条件渲染才可靠。品牌在顶栏，侧栏没有 logo 行。
 - **品牌资源只有一处真源**：`public/Icon-60@3x.png`（180×180），站点图标与顶栏 logo 全走
   `src/lib/assets.ts` 的 `SITE_ICON`。裸 `<img src="/x.png">` 在 Pages 子路径部署下会 404
   （`<img>` 不会自动加 `basePath`），新增静态图一律用 `asset('/path')` 拼前缀。
