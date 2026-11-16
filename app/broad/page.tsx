@@ -112,7 +112,8 @@ export default function BroadValuationPage() {
           </li>
           <li>{data.percentileNote}</li>
           <li>
-            数值口径与中证指数官方「整体法」不同（例：沪深300 官方 PE 高于本页），
+            数值口径与中证指数官方「中证估值」不同：沪深300 两者接近（13.07 vs 13.42），
+            但中证1000（25.43 vs 37.89）、科创50（57.40 vs 93.50）差异可达三成以上，
             <strong>跨来源的绝对值不可直接比较</strong>；百分位请在同一序列内看趋势。
           </li>
           <li>百分位越低＝该指标处在自身历史的越低位，不代表绝对便宜，也不构成投资建议。</li>
@@ -168,7 +169,10 @@ export default function BroadValuationPage() {
             </table>
           </div>
           <ul className={`${styles.faqList} ${styles.faqAfterTable}`}>
-            <li>{row.source}，与上表口径不同（实测沪深300 差 2.6%、中证500 差 21%、中证1000 差 33%），<strong>不可与上表横向比较</strong>。</li>
+            <li>
+              来源：{row.source}。实测同日差异：沪深300 2.6%、中证500 21%、中证1000 33%，
+              <strong>不可与上表横向比较</strong>。
+            </li>
             <li>该指数无公开 PB 历史序列（中证官方无 PB 接口），PB 行留空，不推算。</li>
             <li>历史自 {row.startDate} 起（{row.points} 个交易日），故 5 年 / 10 年窗口不足，标「—」。</li>
           </ul>
