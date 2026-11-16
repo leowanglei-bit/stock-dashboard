@@ -16,7 +16,7 @@
 
 import { useEffect, useSyncExternalStore, useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { ConfigProvider, Spin } from 'antd';
 import styles from './AppShell.module.css';
 import SiteHeader from './SiteHeader';
@@ -59,7 +59,6 @@ const NAV = [
 function Shell({ children }: { children: React.ReactNode }) {
   const d = useDashboard();
   const pathname = usePathname() ?? '/';
-  const router = useRouter();
   const [siderOpen, setSiderOpen] = useState(false);
   // 桌面端折叠侧栏（汉堡按钮在两种宽度下语义不同：宽屏折叠、窄屏开抽屉）
   const [collapsed, setCollapsed] = useState(false);
@@ -82,14 +81,6 @@ function Shell({ children }: { children: React.ReactNode }) {
   };
 
   const current = pathname.length > 1 ? pathname.replace(/\/+$/, '') : '/';
-
-  const goBoard = (boardId: string) => {
-    setSiderOpen(false);
-    if (current !== '/') router.push('/');
-    window.setTimeout(() => {
-      document.getElementById(`board-${boardId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, current === '/' ? 0 : 260);
-  };
 
   return (
     <ConfigProvider theme={d.antdThemeConfig}>
@@ -119,29 +110,6 @@ function Shell({ children }: { children: React.ReactNode }) {
                   </Link>
                 ))}
               </nav>
-
-              <div className={styles.navGroup}>我的板块</div>
-              {d.boardOrder.length === 0 ? (
-                <div className={styles.siderEmpty}>暂无板块</div>
-              ) : (
-                <div>
-                  {d.boardOrder.map((bid) => {
-                    const board = d.boards[bid];
-                    if (!board) return null;
-                    return (
-                      <button
-                        key={bid}
-                        type="button"
-                        className={styles.boardItem}
-                        onClick={() => goBoard(bid)}
-                        title={board.title}
-                      >
-                        {board.title}（{board.stocks.length}）
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
 
               {/* 设置 / 关于下沉到侧栏底部，主菜单只留内容入口 */}
               <div className={styles.siderFoot}>

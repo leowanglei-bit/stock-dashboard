@@ -30,14 +30,6 @@
   z-index: 30;
 }
 
-.navGroup {
-  padding: 0.55rem 0.6rem 0.3rem;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--text-dim);
-  letter-spacing: 1px;
-}
-
 .navItem {
   display: flex;
   align-items: center;
@@ -59,30 +51,6 @@
   background: var(--primary-glow);
   color: var(--primary);
   font-weight: 600;
-}
-
-.boardItem {
-  width: 100%;
-  text-align: left;
-  padding: 0.4rem 0.65rem;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: background-color 0.15s, color 0.15s;
-}
-
-.boardItem:hover {
-  background: var(--primary-glow);
-  color: var(--text-bright);
-}
-
-.siderEmpty {
-  padding: 0.15rem 0.65rem 0.5rem;
-  font-size: 0.78rem;
-  color: var(--text-dim);
 }
 
 .siderFoot {
