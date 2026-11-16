@@ -1,9 +1,11 @@
-import React from 'react';
-import styles from './Modal.module.css';
+'use client';
+
+import { Modal as AntdModal, Button } from 'antd';
+import type { ReactNode } from 'react';
 
 interface ModalProps {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
   onConfirm?: () => void;
   confirmText?: string;
   onCancel: () => void;
@@ -11,6 +13,10 @@ interface ModalProps {
   danger?: boolean;
 }
 
+/**
+ * 对外接口与迁移前一致（title/children/onConfirm/confirmText/onCancel/showCancel/danger），
+ * 内部换成 antd Modal，遮罩、焦点管理、Esc 关闭由 antd 负责。
+ */
 export default function Modal({
   title,
   children,
@@ -20,33 +26,38 @@ export default function Modal({
   showCancel = true,
   danger,
 }: ModalProps) {
+  const footer = [
+    showCancel ? (
+      <Button key="cancel" onClick={onCancel}>
+        取消
+      </Button>
+    ) : null,
+    onConfirm ? (
+      <Button key="confirm" type="primary" danger={danger} onClick={onConfirm}>
+        {confirmText}
+      </Button>
+    ) : null,
+  ].filter(Boolean);
+
   return (
-    <div className={styles.overlay} onClick={onCancel}>
-      <div className={styles.content} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.header}>
-          <span className={styles.title}>{title}</span>
-          <button className={styles.closeBtn} onClick={onCancel}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6 6 18" /><path d="m6 6 12 12" />
-            </svg>
-          </button>
-        </div>
-        <div className={styles.body}>{children}</div>
-        <div className={styles.actions}>
-          {showCancel && (
-            <button className={styles.btnCancel} onClick={onCancel}>取消</button>
-          )}
-          {onConfirm && (
-            <button
-              className={styles.btnConfirm}
-              style={danger ? {} : { background: 'var(--primary)' }}
-              onClick={onConfirm}
-            >
-              {confirmText}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
+    <AntdModal
+      open
+      title={title}
+      onCancel={onCancel}
+      footer={footer}
+      centered
+      width={380}
+      maskClosable
+      destroyOnHidden
+      // 边框/阴影用 antd 的内联语义样式通道：cssinjs 运行时注入优先级高于外部 CSS
+      styles={{
+        container: {
+          border: '1px solid var(--border-highlight)',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
+        },
+      }}
+    >
+      {children}
+    </AntdModal>
   );
 }

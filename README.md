@@ -31,19 +31,33 @@
 
 ---
 
+## 🖥️ 技术栈
+
+| 层 | 选型 |
+|:---|:---|
+| 框架 | **Next.js 16（App Router，`output: 'export'` 静态导出）** ＋ React 19 ＋ TypeScript |
+| UI | **Ant Design 6**（cssinjs 主题，`ConfigProvider` 跟随暗/亮主题）＋ **Tailwind CSS 3**（颜色全部映射到 `src/index.css` 的 CSS 变量）＋ CSS Modules |
+| 字体 | `next/font/local` 自托管 Inter（不依赖 Google Fonts） |
+| 数据 | `@supabase/supabase-js`（浏览器端直连）＋ 新浪/腾讯行情 API |
+| 部署 | GitHub Actions → `next build` → 上传 `out/` → GitHub Pages（项目子路径 `/stock-dashboard/`） |
+
+---
+
 ## 🖥️ 本地开发
 
 ```bash
 git clone https://github.com/leowanglei-bit/stock-dashboard.git
 cd stock-dashboard
 npm install
-npm run dev      # http://localhost:5173
+npm run dev      # http://localhost:3000
 ```
 
-构建生产版本：
+构建生产版本（静态导出）：
 
 ```bash
-npm run build    # 产物在 dist/
+npm run build                                     # 产物在 out/
+NEXT_PUBLIC_BASE_PATH=/stock-dashboard npm run build   # 构建 GitHub Pages 子路径版
+npm run preview                                   # 本地静态预览 out/：http://localhost:4173
 ```
 
 ---
@@ -77,6 +91,9 @@ npm run build    # 产物在 dist/
 | `VITE_SUPABASE_URL` | Project Settings → API → Project URL |
 | `VITE_SUPABASE_ANON_KEY` | Project Settings → API → anon public key |
 
+> 新变量名为 `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`；
+> 工作流做了兼容：同名的 `NEXT_PUBLIC_*` 优先，回落到旧的 `VITE_*`，故现有 Secret 无需改名。
+
 4. 推送代码后自动部署，同步生效
 
 ---
@@ -84,14 +101,24 @@ npm run build    # 产物在 dist/
 ## 🏗️ 项目结构
 
 ```
+app/                         # Next.js App Router
+├── layout.tsx               # 全局布局：Inter 字体、metadata、AntdRegistry
+├── page.tsx                 # 首页（客户端动态加载 src/App）
+├── not-found.tsx            # 404
+├── globals.css              # Tailwind 指令 + 引入 src/index.css
+└── fonts/                   # 自托管 Inter woff2
+next.config.ts               # output:'export'、basePath/assetPrefix、trailingSlash
+tailwind.config.mjs          # Tailwind 3，颜色映射到既有 CSS 变量
+postcss.config.mjs           # postcss-import + tailwindcss + autoprefixer
+
 src/
 ├── components/
-│   ├── Navbar.tsx           # 顶部导航栏
+│   ├── Navbar.tsx           # 顶部导航栏（antd Button/Select/Tooltip）
 │   ├── SectionGroup.tsx     # 板块网格容器
 │   ├── BoardCard.tsx        # 板块卡片
 │   ├── StockRow.tsx         # 股票行
-│   ├── AddStockForm.tsx     # 搜索添加股票
-│   ├── Modal.tsx            # 确认弹窗
+│   ├── AddStockForm.tsx     # 搜索添加股票（antd Input/Button/Empty）
+│   ├── Modal.tsx            # 确认弹窗（antd Modal 封装）
 │   └── ToastContainer.tsx   # 消息通知
 ├── data/
 │   ├── apiClient.ts         # Supabase 同步
@@ -101,15 +128,15 @@ src/
 │   ├── fullStocks.ts        # 7214 只 A 股
 │   └── utils.ts             # 工具函数
 ├── lib/
-│   └── supabase.ts          # Supabase 客户端
+│   └── supabase.ts          # Supabase 客户端（NEXT_PUBLIC_* 环境变量）
 ├── hooks/
 │   ├── useLocalStorage.ts
 │   ├── useRealtimePrices.ts
 │   └── useToast.ts
 ├── types/index.ts
-├── App.tsx
-├── index.css
-└── main.tsx
+├── App.tsx                  # 应用主体（ConfigProvider 主题 + 业务状态）
+├── index.css                # 主题 CSS 变量 + CSS Modules 之外的全局样式
+└── App.module.css
 ```
 
 ---

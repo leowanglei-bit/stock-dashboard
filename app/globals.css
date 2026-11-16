@@ -1,0 +1,25 @@
+/* 既有主题变量与重置（单一来源，勿在此重复定义色板） */
+@import '../src/index.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* next/font/local 自托管的 Inter 接管字体栈（index.css 里写的是 'Inter'） */
+:root {
+  --font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Next 的根节点没有 #root，补一条让整页撑满（原 index.css 只给 #root 100%） */
+body > div {
+  height: 100%;
+}
+
+/* antd 弹窗：遮罩与容器毛玻璃（边框/阴影走 Modal.tsx 的 styles.container，
+   因为 cssinjs 运行时注入优先级更高） */
+.ant-modal-root .ant-modal-container {
+  backdrop-filter: blur(20px);
+}
+.ant-modal-root .ant-modal-mask {
+  backdrop-filter: blur(8px);
+}

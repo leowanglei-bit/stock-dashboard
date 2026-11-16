@@ -37,8 +37,11 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          # 兼容旧 Secret 名：优先用 NEXT_PUBLIC_*，未配置时退回 VITE_*
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
+          # GitHub Pages 项目站点部署在 /stock-dashboard/ 子路径
+          NEXT_PUBLIC_BASE_PATH: /stock-dashboard
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -46,7 +49,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist
+          path: ./out
 
       - name: Deploy to GitHub Pages
         id: deployment

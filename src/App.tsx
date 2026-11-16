@@ -1,4 +1,8 @@
+'use client';
+
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { ConfigProvider, theme as antdTheme } from 'antd';
+import type { ThemeConfig } from 'antd';
 import styles from './App.module.css';
 import Navbar from './components/Navbar';
 import SectionGroup from './components/SectionGroup';
@@ -307,8 +311,22 @@ export default function App() {
     toast('正在刷新行情...', 'info');
   }, [refreshPrices, toast]);
 
+  // antd 主题：跟随应用自身的 dark/light 模式，主色对齐 CSS 变量 --primary
+  const antdThemeConfig: ThemeConfig = {
+    algorithm: theme === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+    token: {
+      colorPrimary: '#6366f1',
+      colorInfo: '#6366f1',
+      borderRadius: 8,
+      fontFamily: 'var(--font-family)',
+      colorBgElevated: theme === 'dark' ? '#0d1426' : '#ffffff',
+      colorBgContainer: theme === 'dark' ? '#0d1426' : '#ffffff',
+    },
+  };
+
   return (
-    <div className={styles.appContainer}>
+    <ConfigProvider theme={antdThemeConfig}>
+      <div className={styles.appContainer}>
       <Navbar
         theme={theme}
         intervalMs={intervalMs}
@@ -357,6 +375,7 @@ export default function App() {
           {modal.message}
         </Modal>
       )}
-    </div>
+      </div>
+    </ConfigProvider>
   );
 }

@@ -1,3 +1,6 @@
+'use client';
+
+import { Button, Select, Tooltip } from 'antd';
 import styles from './Navbar.module.css';
 import type { ThemeMode } from '../types';
 
@@ -68,61 +71,84 @@ export default function Navbar({
       <div className={styles.navRight}>
         <div className={styles.controls}>
           {/* 时间间隔 */}
-          <select
-            className={styles.select}
+          <Select
+            size="small"
             value={intervalMs}
-            onChange={(e) => onIntervalChange(Number(e.target.value))}
-          >
-            {intervals.map((i) => (
-              <option key={i.value} value={i.value}>
-                每{i.label}
-              </option>
-            ))}
-          </select>
+            onChange={onIntervalChange}
+            options={intervals.map((i) => ({ label: `每${i.label}`, value: i.value }))}
+            popupMatchSelectWidth={false}
+            style={{ minWidth: 88 }}
+          />
 
           {/* 暂停/继续 */}
-          <button className={styles.iconBtn} onClick={onToggleSimulation} title={simulationActive ? '暂停更新' : '继续更新'}>
-            {simulationActive ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
-            )}
-          </button>
+          <Tooltip title={simulationActive ? '暂停更新' : '继续更新'}>
+            <Button
+              type="text"
+              onClick={onToggleSimulation}
+              aria-label={simulationActive ? '暂停更新' : '继续更新'}
+              icon={
+                simulationActive ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+                )
+              }
+            />
+          </Tooltip>
 
           {/* 主题切换 */}
-          <button className={styles.iconBtn} onClick={onToggleTheme} title={theme === 'dark' ? '切换亮色主题' : '切换暗色主题'}>
-            {theme === 'dark' ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v2" /><path d="M12 20v2" />
-                <path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" />
-                <path d="M2 12h2" /><path d="M20 12h2" />
-                <path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" />
-              </svg>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-              </svg>
-            )}
-          </button>
+          <Tooltip title={theme === 'dark' ? '切换亮色主题' : '切换暗色主题'}>
+            <Button
+              type="text"
+              onClick={onToggleTheme}
+              aria-label="切换主题"
+              icon={
+                theme === 'dark' ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="4" />
+                    <path d="M12 2v2" /><path d="M12 20v2" />
+                    <path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" />
+                    <path d="M2 12h2" /><path d="M20 12h2" />
+                    <path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                  </svg>
+                )
+              }
+            />
+          </Tooltip>
 
           {/* 手动刷新行情 */}
-          <button className={styles.iconBtn} onClick={onRefreshPrices} title="手动刷新行情">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-              <path d="M21 3v5h-5" />
-              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-              <path d="M8 16H3v5" />
-            </svg>
-          </button>
+          <Tooltip title="手动刷新行情">
+            <Button
+              type="text"
+              onClick={onRefreshPrices}
+              aria-label="手动刷新行情"
+              icon={
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                  <path d="M21 3v5h-5" />
+                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                  <path d="M8 16H3v5" />
+                </svg>
+              }
+            />
+          </Tooltip>
         </div>
 
-        <button className={styles.addBtn} onClick={onAddBoard}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M5 12h14" /><path d="M12 5v14" />
-          </svg>
+        <Button
+          type="primary"
+          onClick={onAddBoard}
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M5 12h14" /><path d="M12 5v14" />
+            </svg>
+          }
+        >
           新增板块
-        </button>
+        </Button>
       </div>
     </nav>
   );

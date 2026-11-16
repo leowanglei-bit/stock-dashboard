@@ -1,4 +1,7 @@
-import React, { useState, useRef, useCallback } from 'react';
+'use client';
+
+import { Button, Input, Empty } from 'antd';
+import { useState, useCallback } from 'react';
 import styles from './AddStockForm.module.css';
 import { searchStocks } from '../data/stockSearchDb';
 import type { StockSeed } from '../data/fullStocks';
@@ -16,7 +19,6 @@ export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
   const [results, setResults] = useState<StockSeed[]>([]);
   const [searched, setSearched] = useState(false);
   const [searching, setSearching] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const doAdd = (stock: Stock) => {
     onAddStock(boardId, stock);
@@ -33,31 +35,24 @@ export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
     setSearching(false);
   }, [query]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSearch();
-  };
-
   return (
     <div className={styles.addForm}>
       <div className={styles.searchRow}>
-        <input
-          ref={inputRef}
+        <Input
           className={styles.searchInput}
           placeholder="输入股票名称或代码搜索..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
+          onPressEnter={handleSearch}
         />
-        <button className={styles.searchBtn} onClick={handleSearch} disabled={searching}>
-          {searching ? '搜索中...' : (
-            <>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-              </svg>
-              查询
-            </>
-          )}
-        </button>
+        <Button
+          className={styles.searchBtn}
+          type="primary"
+          onClick={handleSearch}
+          loading={searching}
+        >
+          查询
+        </Button>
       </div>
 
       {searched && !searching && results.length > 0 && (
@@ -80,7 +75,9 @@ export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
         </div>
       )}
       {searched && !searching && results.length === 0 && (
-        <div className={styles.emptyResult}>未找到匹配的股票</div>
+        <div className={styles.emptyResult}>
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="未找到匹配的股票" />
+        </div>
       )}
     </div>
   );

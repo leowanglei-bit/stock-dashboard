@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* 字体改为 next/font/local 自托管（app/fonts/inter-*.woff2），不再远程引 Google Fonts */
 
 /* ===== Dark Theme (default) ===== */
 :root {

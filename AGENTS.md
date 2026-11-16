@@ -1,0 +1,94 @@
+# AGENTS.md — stock-dashboard
+
+> 本文件供 AI agent 与协作者阅读。所有命令与基线均为**实测记录**，不是推测。
+> 基线采集：2026-10-22，macOS 26.6.2（Vite 时代）；2026-11-16 迁移到 Next.js 后重测。
+
+## 1. 这是什么
+
+股票看板。纯前端（浏览器端直连 Supabase ＋ 新浪/腾讯行情 API），静态导出后部署到 GitHub Pages。
+仓库里另有 `server/`（历史遗留的 Python 本地服务），前端构建与部署**不依赖**它。
+
+## 2. 技术栈
+
+- 框架：**Next.js 16 App Router ＋ React 19 ＋ TypeScript**，`output: 'export'`（纯静态，**没有** Node 运行时、没有 SSR/ISR/Server Actions）
+- UI：**Ant Design 6**（cssinjs 运行时注入，主题由 `ConfigProvider` 控制）＋ **Tailwind CSS 3**（颜色全部映射到 `src/index.css` 的 CSS 变量）＋ 既有 CSS Modules
+- 字体：`next/font/local` 自托管 Inter（`app/fonts/*.woff2`），构建与运行都不访问 Google Fonts
+- 数据：`@supabase/supabase-js`、`src/data/sinaApi.ts`（新浪/腾讯行情）
+- 工具链：`eslint`（flat config）＋ `typescript-eslint`
+- 部署：GitHub Actions → `next build` → 上传 `out/` → GitHub Pages（子路径 `/stock-dashboard/`）
+- **已移除**：Vite、`@vitejs/plugin-react`、`index.html`、`vite.config.ts`、`src/main.tsx`、`tsconfig.app.json`、`tsconfig.node.json`
+
+## 3. 目录
+
+```
+app/            layout.tsx / page.tsx / not-found.tsx / globals.css / fonts
+src/            App.tsx / components / hooks / lib / types / data / index.css / App.module.css
+server/         app.py ＋ data.db ＋ requirements.txt ＋ supabase.sql（历史遗留，未参与构建）
+scripts/        构建与辅助脚本
+data/           boards.json（4 KB，小型兜底数据）
+out/            静态导出产物（勿手改，git 忽略）
+next.config.ts / tailwind.config.mjs / postcss.config.mjs / tsconfig.json / eslint.config.js
+```
+
+## 4. 门禁（改完必跑）
+
+```bash
+npm run build                 # = next build（静态导出到 out/）
+npm run lint                  # = eslint .
+```
+
+取退出码不要接管道：`npm run build > /tmp/b.log 2>&1; echo EXIT=$?`
+
+### 基线（2026-11-16 迁移后实测）
+
+| 命令 | 结果 |
+|---|---|
+| `npm run build` | **EXIT=0** ✅（`output: 'export'`，产物在 `out/`；默认与 `NEXT_PUBLIC_BASE_PATH=/stock-dashboard` 两种模式均通过） |
+| `npm run lint` | **EXIT=1**，**21 errors / 0 warnings**（与迁移前逐条相同，迁移新增 0 条） |
+
+**所以 build 是绿的、lint 是红的（历史债务）。** 已知错误类型：
+`react-hooks/refs`（如 `boardsRef.current = _boards` 在 render 期赋值）、
+`@typescript-eslint/no-explicit-any`（如 `src/lib/supabase.ts`）等，集中在 `src/data/*` 与 `src/hooks/*`。
+
+**lint 的判据是「不新增错误」，不是「归零」。** 动手前先记下失败条数（当前 **21**）与失败规则名；
+改完只允许这组数字变小或不变。顺手修掉的要同步下调基线，否则下次会漏判。
+
+## 5. 本地起服务
+
+```bash
+npm run dev                                       # next dev，默认 http://localhost:3000
+npm run build && npm run preview                  # 静态预览 out/：http://localhost:4173
+NEXT_PUBLIC_BASE_PATH=/stock-dashboard npm run build   # 构建 Pages 子路径版
+```
+
+GitHub Pages 走子路径时资源前缀靠 `NEXT_PUBLIC_BASE_PATH` 注入 `basePath`/`assetPrefix`；
+**本地 dev 不要设这个变量**，否则资源会 404。
+
+## 6. 禁改区
+
+| 路径 | 原因 |
+|---|---|
+| `out/**`、`.next/**` | 构建产物 |
+| `data/boards.json` | 兜底数据，改动前先确认来源与影响面（只有 4 KB，可能是手工维护的清单） |
+| Supabase 集成（`src/lib/supabase.ts`、`server/supabase.sql`） | **不得擅自移除或替换 Supabase**——用户明示：移除前必须先问 |
+| `app/fonts/*.woff2` | 字体二进制，替换需同步 `app/layout.tsx` 的 `localFont` 声明 |
+
+## 7. 已知约束
+
+- 无单元测试（**没有** test 脚本），验收 = build（必过）＋ lint（不新增）＋ 目标页面手点一遍
+- `app/page.tsx` 用 `dynamic(..., { ssr: false })` 加载 `src/App`：业务代码在渲染期直接读 `localStorage`，
+  **不要**改成静态导入或 `'use client'` 直接渲染，否则静态导出会因 `localStorage` 未定义而失败
+- antd 样式是 cssinjs 运行时注入，**外部 CSS 覆盖 `.ant-*` 常常失效**（优先级/注入顺序），
+  要改组件外观优先用组件 props（如 `Modal` 的 `styles.container`）
+- 主题色只有一处真源：`src/index.css` 的 CSS 变量；Tailwind 与 antd token 都映射到它，别另起一套色板
+- 前端与 `server/` 是两个独立进程，改动跨端时两端都要起一遍，别只验前端
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
