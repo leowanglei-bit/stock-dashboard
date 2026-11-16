@@ -3,10 +3,10 @@
 /**
  * 应用外壳（对标 etf.maxmeng.top 的形态）：左侧固定导航 + 顶栏 + 内容区。
  *
- * 左侧栏承载三类入口：主菜单（自选 / 设置 / 关于）、板块快速定位、底部署名。
- * 右侧顶栏只服务「自选」页（行情状态 + 刷新间隔 + 手动刷新 + 新增板块），
- * 其余页面顶栏为空（桌面端不渲染，窄屏只留开合侧栏的汉堡按钮）。
- * 窄屏（≤900px）时侧栏改为抽屉，由顶栏的汉堡按钮开合。
+ * 左侧栏承载两类入口：主菜单（自选 / 设置 / 关于）、板块快速定位、底部署名。
+ * 右侧顶部是全局顶栏 SiteHeader（对标 etf.maxmeng.top：汉堡 + 品牌 + 消息 + 个人中心），
+ * 所有路由一致；「自选」页的行情操作条由 app/page.tsx 自己在内容区渲染。
+ * 汉堡按钮：桌面端折叠/展开侧栏，窄屏（≤900px）时侧栏改为抽屉。
  */
 
 import { useSyncExternalStore, useState } from 'react';
@@ -14,12 +14,11 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ConfigProvider, Spin } from 'antd';
 import styles from './AppShell.module.css';
-import Navbar from './Navbar';
+import SiteHeader from './SiteHeader';
 import Modal from './Modal';
 import ToastContainer from './ToastContainer';
 import { DashboardProvider } from '../App';
 import { useDashboard } from '../store/context';
-import { SITE_ICON } from '../lib/assets';
 
 // 客户端标记：静态导出预渲染时返回 false（首屏只吐一个 loading 占位），水合后返回 true
 const emptySubscribe = () => () => {};
@@ -66,6 +65,13 @@ function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? '/';
   const router = useRouter();
   const [siderOpen, setSiderOpen] = useState(false);
+  // 桌面端折叠侧栏（汉堡按钮在两种宽度下语义不同：宽屏折叠、窄屏开抽屉）
+  const [collapsed, setCollapsed] = useState(false);
+
+  const toggleSider = () => {
+    if (window.matchMedia('(max-width: 900px)').matches) setSiderOpen((v) => !v);
+    else setCollapsed((v) => !v);
+  };
 
   const current = pathname.length > 1 ? pathname.replace(/\/+$/, '') : '/';
 
@@ -80,12 +86,9 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <ConfigProvider theme={d.antdThemeConfig}>
       <div className={styles.shell}>
-        <aside className={`${styles.sider} ${siderOpen ? styles.siderOpen : ''}`}>
-          <Link href="/" className={styles.brand}>
-            <img src={SITE_ICON} alt="灵犀茶馆" className={styles.brandIcon} width={26} height={26} />
-            <span>灵犀茶馆</span>
-          </Link>
-
+        <aside
+          className={`${styles.sider} ${siderOpen ? styles.siderOpen : ''} ${collapsed ? styles.siderCollapsed : ''}`}
+        >
           <nav>
             {NAV.map((item) => (
               <Link
@@ -129,19 +132,11 @@ function Shell({ children }: { children: React.ReactNode }) {
         {siderOpen && <div className={styles.backdrop} onClick={() => setSiderOpen(false)} />}
 
         <div className={styles.right}>
-          <Navbar
-            variant={current === '/' ? 'board' : 'bare'}
+          <SiteHeader
             theme={d.theme}
-            intervalMs={d.intervalMs}
-            simulationActive={d.simulationActive}
-            lastUpdateTime={d.lastUpdateTime}
-            apiStatus={d.apiStatus}
             onToggleTheme={d.toggleTheme}
-            onIntervalChange={d.setIntervalMs}
-            onToggleSimulation={d.toggleSimulation}
-            onAddBoard={d.addBoard}
-            onRefreshPrices={d.refreshPrices}
-            onToggleSider={() => setSiderOpen((v) => !v)}
+            serverMode={d.serverMode}
+            onToggleSider={toggleSider}
           />
           <div className={styles.content}>{children}</div>
           <div className={styles.footer}>

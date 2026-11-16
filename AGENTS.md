@@ -28,8 +28,8 @@ app/            layout.tsx（AppShell 外壳）/ page.tsx（/ 自选）/ setting
                 globals.css / fonts
 src/            App.tsx（DashboardProvider：全部业务状态）
                 store/context.ts（Context + useDashboard）
-                components/（AppShell 外壳、Navbar、SectionGroup、BoardCard、StockRow、
-                             AddStockForm、Modal、ToastContainer）
+                components/（AppShell 外壳、SiteHeader 全局顶栏、BoardToolbar 自选页工具条、
+                             SectionGroup、BoardCard、StockRow、AddStockForm、Modal、ToastContainer）
                 hooks/ lib/ types/ data/ index.css / App.module.css
 server/         app.py ＋ data.db ＋ requirements.txt ＋ supabase.sql（历史遗留，未参与构建）
 scripts/        构建与辅助脚本
@@ -89,10 +89,14 @@ GitHub Pages 走子路径时资源前缀靠 `NEXT_PUBLIC_BASE_PATH` 注入 `base
   否则切路由会重建、行情轮询会重复。
 - **新增页面＝两处**：建 `app/<name>/page.tsx`，并在 `src/components/AppShell.tsx` 的 `NAV` 里加一项
   （图标 + `href` + 文案）；侧栏高亮按 `usePathname()` 精确匹配 `href`。
-- **顶栏只服务「自选」页**：`AppShell` 按 `current === '/'` 传 `Navbar variant='board'`，其余路由
-  `variant='bare'`（桌面端整条 `display:none`，窄屏只留开合抽屉的汉堡）。行情状态、刷新间隔、
-  手动刷新、新增板块都是自选页专属，**不要**加回全局外壳；新增全局操作优先放设置页。
-- **品牌资源只有一处真源**：`public/Icon-60@3x.png`（180×180），图标/侧栏 logo 全走
+- **顶栏分两层，别混**：`SiteHeader` 是全局顶栏（56px，对标 etf.maxmeng.top：汉堡 + 品牌 +
+  消息 + 个人中心），所有路由一致，只放站点级入口；`BoardToolbar` 是「自选」页工具条
+  （行情状态 / 刷新间隔 / 暂停 / 主题 / 手动刷新 / 新增板块），**只由 `app/page.tsx` 渲染**。
+  页面级操作不要加进 `SiteHeader`，否则又会变成全局按钮。
+- **汉堡按钮两种语义**：`AppShell` 的 `toggleSider` 用 `matchMedia('(max-width: 900px)')` 分流——
+  窄屏开合抽屉（`.siderOpen`），宽屏折叠侧栏（`.siderCollapsed`，宽 0 与 `transition` 配套；
+  窄屏媒体查询里要复写宽度，否则折叠态会带进抽屉）。品牌已移到顶栏，侧栏不再有 logo 行。
+- **品牌资源只有一处真源**：`public/Icon-60@3x.png`（180×180），站点图标与顶栏 logo 全走
   `src/lib/assets.ts` 的 `SITE_ICON`。裸 `<img src="/x.png">` 在 Pages 子路径部署下会 404
   （`<img>` 不会自动加 `basePath`），新增静态图一律用 `asset('/path')` 拼前缀。
 - 业务状态读 localStorage（板块、主题、刷新间隔），必须**水合后**再渲染：`AppShell` 用

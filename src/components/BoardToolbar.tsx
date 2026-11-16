@@ -1,15 +1,16 @@
 'use client';
 
+/**
+ * 「自选」页专属工具条：行情状态 + 刷新间隔 + 暂停/继续 + 主题 + 手动刷新 + 新增板块。
+ * 全局顶栏（SiteHeader）只放站点级入口（消息 / 个人中心），本工具条不进全局外壳，
+ * 只由 app/page.tsx 渲染 —— 设置页、关于页不应出现任何一个按钮。
+ */
+
 import { Button, Select, Tooltip } from 'antd';
-import styles from './Navbar.module.css';
+import styles from './BoardToolbar.module.css';
 import type { ThemeMode } from '../types';
 
-interface NavbarProps {
-  /**
-   * 'board'＝自选页完整操作区（行情状态 / 刷新间隔 / 暂停 / 主题 / 手动刷新 / 新增板块）；
-   * 'bare'＝其他页面：顶栏为空，窄屏只保留开合侧栏的汉堡按钮（桌面端整条不显示）。
-   */
-  variant?: 'board' | 'bare';
+interface BoardToolbarProps {
   theme: ThemeMode;
   intervalMs: number;
   simulationActive: boolean;
@@ -20,12 +21,9 @@ interface NavbarProps {
   onToggleSimulation: () => void;
   onAddBoard: () => void;
   onRefreshPrices: () => void;
-  /** 窄屏下开合左侧抽屉（桌面端按钮不显示） */
-  onToggleSider?: () => void;
 }
 
-export default function Navbar({
-  variant = 'board',
+export default function BoardToolbar({
   theme,
   intervalMs,
   simulationActive,
@@ -36,8 +34,7 @@ export default function Navbar({
   onToggleSimulation,
   onAddBoard,
   onRefreshPrices,
-  onToggleSider,
-}: NavbarProps) {
+}: BoardToolbarProps) {
   const intervals = [
     { label: '1s', value: 1000 },
     { label: '3s', value: 3000 },
@@ -46,43 +43,27 @@ export default function Navbar({
     { label: '30s', value: 30000 },
   ];
 
-  const siderToggle = onToggleSider ? (
-    <button type="button" className={styles.menuBtn} onClick={onToggleSider} aria-label="切换导航">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M3 6h18" /><path d="M3 12h18" /><path d="M3 18h18" />
-      </svg>
-    </button>
-  ) : null;
-
-  // 非「自选」页：顶栏不承载任何全局内容（桌面端整条不渲染，窄屏只留汉堡按钮开合侧栏）
-  if (variant === 'bare') {
-    return <nav className={`${styles.navbar} ${styles.navbarBare}`}>{siderToggle}</nav>;
-  }
-
   return (
-    <nav className={styles.navbar}>
-      <div className={styles.navLeft}>
-        {siderToggle}
-        <div className={styles.status}>
-          <span
-            className={`${styles.pulseDot} ${simulationActive ? styles.pulseDotActive : styles.pulseDotPaused}`}
-          />
-          <span>
-            {apiStatus === 'unavailable' ? (
-              <span style={{ color: 'var(--fall-color)' }}>网络不可用！</span>
-            ) : simulationActive ? (
-              `${apiStatus === 'fetching' ? '加载中' : '实时'}`
-            ) : '已暂停'}
-            {lastUpdateTime && simulationActive && apiStatus === 'ok' && (
-              <span className={styles.updateTime}> | {lastUpdateTime}</span>
-            )}
-          </span>
-        </div>
+    <div className={styles.toolbar}>
+      <div className={styles.status}>
+        <span
+          className={`${styles.pulseDot} ${simulationActive ? styles.pulseDotActive : styles.pulseDotPaused}`}
+        />
+        <span>
+          {apiStatus === 'unavailable' ? (
+            <span style={{ color: 'var(--fall-color)' }}>网络不可用！</span>
+          ) : simulationActive ? (
+            `${apiStatus === 'fetching' ? '加载中' : '实时'}`
+          ) : '已暂停'}
+          {lastUpdateTime && simulationActive && apiStatus === 'ok' && (
+            <span className={styles.updateTime}> | {lastUpdateTime}</span>
+          )}
+        </span>
       </div>
 
-      <div className={styles.navRight}>
+      <div className={styles.actions}>
         <div className={styles.controls}>
-          {/* 时间间隔 */}
+          {/* 刷新间隔 */}
           <Select
             size="small"
             value={intervalMs}
@@ -162,6 +143,6 @@ export default function Navbar({
           新增板块
         </Button>
       </div>
-    </nav>
+    </div>
   );
 }

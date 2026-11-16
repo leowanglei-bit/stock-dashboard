@@ -36,7 +36,7 @@
 | 层 | 选型 |
 |:---|:---|
 | 框架 | **Next.js 16（App Router，`output: 'export'` 静态导出）** ＋ React 19 ＋ TypeScript；3 个静态路由：`/` 自选、`/settings` 设置、`/about` 关于 |
-| 布局 | 左侧固定导航（≤900px 收成抽屉）＋ 仅「自选」页使用的顶栏行情控制（其余页面顶栏为空）；状态由 `src/App.tsx` 的 `DashboardProvider` 跨路由共享 |
+| 布局 | 全局顶栏（对标 etf.maxmeng.top：汉堡 + 品牌 + 消息 + 个人中心）＋ 左侧导航（桌面可折叠、≤900px 收成抽屉）＋ 仅「自选」页的行情工具条；状态由 `src/App.tsx` 的 `DashboardProvider` 跨路由共享 |
 | UI | **Ant Design 6**（cssinjs 主题，`ConfigProvider` 跟随暗/亮主题）＋ **Tailwind CSS 3**（颜色全部映射到 `src/index.css` 的 CSS 变量）＋ CSS Modules |
 | 字体 | `next/font/local` 自托管 Inter（不依赖 Google Fonts） |
 | 数据 | `@supabase/supabase-js`（浏览器端直连）＋ 新浪/腾讯行情 API |
@@ -118,8 +118,9 @@ src/
 ├── App.tsx                  # DashboardProvider：全部业务状态（板块/行情/同步/主题）
 ├── store/context.ts         # 上述状态的 Context 与 useDashboard()
 ├── components/
-│   ├── AppShell.tsx         # 外壳：左侧导航 + 顶栏 + 内容区 + 全局弹窗/提示
-│   ├── Navbar.tsx           # 顶栏：variant='board' 完整操作区 / 'bare' 空顶栏（仅窄屏汉堡）
+│   ├── AppShell.tsx         # 外壳：左侧导航 + 内容区 + 全局弹窗/提示
+│   ├── SiteHeader.tsx       # 全局顶栏：汉堡 + 品牌 + 消息（Popover）+ 个人中心（Dropdown）
+│   ├── BoardToolbar.tsx     # 「自选」页工具条：行情状态 / 间隔 / 暂停 / 主题 / 刷新 / 新增板块
 │   ├── SectionGroup.tsx     # 板块网格容器
 │   ├── BoardCard.tsx        # 板块卡片
 │   ├── StockRow.tsx         # 股票行
