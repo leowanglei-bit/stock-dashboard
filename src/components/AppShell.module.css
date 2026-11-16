@@ -87,11 +87,34 @@
 
 .siderFoot {
   margin-top: auto;
-  padding: 0.75rem 0.65rem 0.25rem;
-  font-size: 0.72rem;
-  line-height: 1.7;
+  padding: 0.7rem 0.65rem 0.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
   color: var(--text-dim);
   border-top: 1px solid var(--border-color);
+}
+
+.siderFootLink {
+  color: var(--text-dim);
+  text-decoration: none;
+  border-radius: 4px;
+  padding: 0.1rem 0.15rem;
+  transition: color 0.15s ease;
+}
+
+.siderFootLink:hover {
+  color: var(--text-bright);
+}
+
+.siderFootLinkActive {
+  color: var(--primary);
+}
+
+.siderFootDot {
+  color: var(--text-dim);
+  opacity: 0.6;
 }
 
 /* ───── 右侧主体 ───── */

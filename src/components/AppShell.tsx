@@ -43,23 +43,14 @@ const NAV = [
     ),
   },
   {
-    href: '/settings',
-    label: '设置',
+    href: '/broad',
+    label: '宽基',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <circle cx="12" cy="12" r="3" />
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-      </svg>
-    ),
-  },
-  {
-    href: '/about',
-    label: '关于',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 16v-4" />
-        <path d="M12 8h.01" />
+        <path d="M3 20h18" />
+        <rect x="5" y="11" width="3.6" height="6" rx="1" />
+        <rect x="10.2" y="7" width="3.6" height="10" rx="1" />
+        <rect x="15.4" y="13" width="3.6" height="4" rx="1" />
       </svg>
     ),
   },
@@ -152,7 +143,24 @@ function Shell({ children }: { children: React.ReactNode }) {
                 </div>
               )}
 
-              <div className={styles.siderFoot}>藏经阁</div>
+              {/* 设置 / 关于下沉到侧栏底部，主菜单只留内容入口 */}
+              <div className={styles.siderFoot}>
+                <Link
+                  href="/settings"
+                  onClick={() => setSiderOpen(false)}
+                  className={`${styles.siderFootLink} ${current === '/settings' ? styles.siderFootLinkActive : ''}`}
+                >
+                  设置
+                </Link>
+                <span className={styles.siderFootDot}>·</span>
+                <Link
+                  href="/about"
+                  onClick={() => setSiderOpen(false)}
+                  className={`${styles.siderFootLink} ${current === '/about' ? styles.siderFootLinkActive : ''}`}
+                >
+                  关于
+                </Link>
+              </div>
             </aside>
           )}
 

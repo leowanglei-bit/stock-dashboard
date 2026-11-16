@@ -15,7 +15,9 @@
 - 框架：**Next.js 16 App Router ＋ React 19 ＋ TypeScript**，`output: 'export'`（纯静态，**没有** Node 运行时、没有 SSR/ISR/Server Actions）
 - UI：**Ant Design 6**（cssinjs 运行时注入，主题由 `ConfigProvider` 控制）＋ **Tailwind CSS 3**（颜色全部映射到 `src/index.css` 的 CSS 变量）＋ 既有 CSS Modules
 - 字体：`next/font/local` 自托管 Inter（`app/fonts/*.woff2`），构建与运行都不访问 Google Fonts
-- 数据：`@supabase/supabase-js`、`src/data/sinaApi.ts`（新浪/腾讯行情）
+- 数据：`@supabase/supabase-js`、`src/data/sinaApi.ts`（新浪/腾讯行情）、`src/data/indexValuation.json`
+  （宽基估值，由 `npm run refresh:valuation` 跑 `scripts/fetch_index_valuation.mjs` 从蛋卷接口生成；
+  页面不请求外网，改数据要重跑脚本并提交 JSON）
 - 工具链：`eslint`（flat config）＋ `typescript-eslint`
 - 部署：GitHub Actions → `next build` → 上传 `out/` → GitHub Pages（子路径 `/stock-dashboard/`）
 - **已移除（2026-11-16 Vite 清理，见 git 历史）**：`index.html`、`vite.config.ts`、`src/main.tsx`、

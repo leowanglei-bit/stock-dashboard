@@ -35,11 +35,11 @@
 
 | 层 | 选型 |
 |:---|:---|
-| 框架 | **Next.js 16（App Router，`output: 'export'` 静态导出）** ＋ React 19 ＋ TypeScript；3 个静态路由：`/` 自选、`/settings` 设置、`/about` 关于 |
+| 框架 | **Next.js 16（App Router，`output: 'export'` 静态导出）** ＋ React 19 ＋ TypeScript；4 个静态路由：`/` 自选、`/broad` 宽基估值、`/settings` 设置、`/about` 关于 |
 | 布局 | 全局顶栏（对标 etf.maxmeng.top：汉堡 + 品牌 + 消息 + 个人中心）＋ 左侧导航（桌面可折叠、≤900px 收成抽屉）＋ 仅「自选」页的行情工具条；状态由 `src/App.tsx` 的 `DashboardProvider` 跨路由共享 |
 | UI | **Ant Design 6**（cssinjs 主题，`ConfigProvider` 跟随暗/亮主题）＋ **Tailwind CSS 3**（颜色全部映射到 `src/index.css` 的 CSS 变量）＋ CSS Modules |
 | 字体 | `next/font/local` 自托管 Inter（不依赖 Google Fonts） |
-| 数据 | `@supabase/supabase-js`（浏览器端直连）＋ 新浪/腾讯行情 API |
+| 数据 | `@supabase/supabase-js`（浏览器端直连）＋ 新浪/腾讯行情 API ＋ 蛋卷基金指数估值接口（构建前用 `npm run refresh:valuation` 落 `src/data/indexValuation.json`） |
 | 部署 | GitHub Actions → `next build` → 上传 `out/` → GitHub Pages（项目子路径 `/stock-dashboard/`） |
 
 ---
