@@ -42,7 +42,6 @@
   "exclude": [
     "node_modules",
     "out",
-    "dist",
-    "src/main.tsx"
+    "dist"
   ]
 }
