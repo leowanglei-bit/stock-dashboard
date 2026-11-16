@@ -1,15 +1,20 @@
 'use client';
 
 /**
- * 应用外壳（对标 etf.maxmeng.top 的形态）：左侧固定导航 + 顶栏 + 内容区。
+ * 应用外壳，布局关系对标 etf.maxmeng.top：
+ *
+ *   shell（纵向）
+ *   ├─ SiteHeader：顶栏横贯整宽，永远在最上面
+ *   └─ body（横向）
+ *      ├─ aside：侧栏从顶栏下沿开始，只占下半屏高度
+ *      └─ right：内容区 + 页脚（自身滚动）
  *
  * 左侧栏承载两类入口：主菜单（自选 / 设置 / 关于）、板块快速定位、底部署名。
- * 右侧顶部是全局顶栏 SiteHeader（对标 etf.maxmeng.top：汉堡 + 品牌 + 消息 + 个人中心），
- * 所有路由一致；「自选」页的行情操作条由 app/page.tsx 自己在内容区渲染。
+ * 「自选」页的行情操作条由 app/page.tsx 自己在内容区渲染，不进顶栏。
  * 汉堡按钮：桌面端折叠/展开侧栏，窄屏（≤900px）时侧栏改为抽屉。
  */
 
-import { useSyncExternalStore, useState } from 'react';
+import { useEffect, useSyncExternalStore, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ConfigProvider, Spin } from 'antd';
@@ -67,9 +72,21 @@ function Shell({ children }: { children: React.ReactNode }) {
   const [siderOpen, setSiderOpen] = useState(false);
   // 桌面端折叠侧栏（汉堡按钮在两种宽度下语义不同：宽屏折叠、窄屏开抽屉）
   const [collapsed, setCollapsed] = useState(false);
+  // 窄屏判定放在 JS 里：折叠＝直接不渲染侧栏，避免再和 .sider 的宽度打架
+  const [narrow, setNarrow] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 900px)');
+    const sync = () => setNarrow(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+
+  const hideSider = collapsed && !narrow;
 
   const toggleSider = () => {
-    if (window.matchMedia('(max-width: 900px)').matches) setSiderOpen((v) => !v);
+    if (narrow) setSiderOpen((v) => !v);
     else setCollapsed((v) => !v);
   };
 
@@ -86,63 +103,68 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <ConfigProvider theme={d.antdThemeConfig}>
       <div className={styles.shell}>
-        <aside
-          className={`${styles.sider} ${siderOpen ? styles.siderOpen : ''} ${collapsed ? styles.siderCollapsed : ''}`}
-        >
-          <nav>
-            {NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setSiderOpen(false)}
-                className={`${styles.navItem} ${current === item.href ? styles.navItemActive : ''}`}
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </Link>
-            ))}
-          </nav>
+        {/* 第一行：顶栏横贯整宽 */}
+        <SiteHeader
+          theme={d.theme}
+          onToggleTheme={d.toggleTheme}
+          serverMode={d.serverMode}
+          onToggleSider={toggleSider}
+        />
 
-          <div className={styles.navGroup}>我的板块</div>
-          {d.boardOrder.length === 0 ? (
-            <div className={styles.siderEmpty}>暂无板块</div>
-          ) : (
-            <div>
-              {d.boardOrder.map((bid) => {
-                const board = d.boards[bid];
-                if (!board) return null;
-                return (
-                  <button
-                    key={bid}
-                    type="button"
-                    className={styles.boardItem}
-                    onClick={() => goBoard(bid)}
-                    title={board.title}
+        {/* 第二行：侧栏 + 内容区，侧栏从顶栏下沿开始 */}
+        <div className={styles.body}>
+          {!hideSider && (
+            <aside className={`${styles.sider} ${siderOpen ? styles.siderOpen : ''}`}>
+              <nav>
+                {NAV.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setSiderOpen(false)}
+                    className={`${styles.navItem} ${current === item.href ? styles.navItemActive : ''}`}
                   >
-                    {board.title}（{board.stocks.length}）
-                  </button>
-                );
-              })}
-            </div>
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Link>
+                ))}
+              </nav>
+
+              <div className={styles.navGroup}>我的板块</div>
+              {d.boardOrder.length === 0 ? (
+                <div className={styles.siderEmpty}>暂无板块</div>
+              ) : (
+                <div>
+                  {d.boardOrder.map((bid) => {
+                    const board = d.boards[bid];
+                    if (!board) return null;
+                    return (
+                      <button
+                        key={bid}
+                        type="button"
+                        className={styles.boardItem}
+                        onClick={() => goBoard(bid)}
+                        title={board.title}
+                      >
+                        {board.title}（{board.stocks.length}）
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className={styles.siderFoot}>藏经阁</div>
+            </aside>
           )}
 
-          <div className={styles.siderFoot}>藏经阁</div>
-        </aside>
+          {siderOpen && <div className={styles.backdrop} onClick={() => setSiderOpen(false)} />}
 
-        {siderOpen && <div className={styles.backdrop} onClick={() => setSiderOpen(false)} />}
-
-        <div className={styles.right}>
-          <SiteHeader
-            theme={d.theme}
-            onToggleTheme={d.toggleTheme}
-            serverMode={d.serverMode}
-            onToggleSider={toggleSider}
-          />
-          <div className={styles.content}>{children}</div>
-          <div className={styles.footer}>
-            <span className={styles.footerText}>心有灵犀 谈笑间 众生皆有回响</span>
-            <span className={styles.footerSep}> ｜ </span>
-            <span className={styles.footerText}>味归平淡 静思处 乾坤尽纳一盏</span>
+          <div className={styles.right}>
+            <div className={styles.content}>{children}</div>
+            <div className={styles.footer}>
+              <span className={styles.footerText}>心有灵犀 谈笑间 众生皆有回响</span>
+              <span className={styles.footerSep}> ｜ </span>
+              <span className={styles.footerText}>味归平淡 静思处 乾坤尽纳一盏</span>
+            </div>
           </div>
         </div>
 

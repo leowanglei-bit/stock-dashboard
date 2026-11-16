@@ -1,9 +1,17 @@
 .shell {
   display: flex;
+  flex-direction: column;
   width: 100vw;
   height: 100vh;
   background: var(--background);
   overflow: hidden;
+}
+
+/* 第二行：侧栏 + 内容区。顶栏是 shell 的第一行，横贯整宽压在上面 */
+.body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
 }
 
 /* ───── 左侧导航 ───── */
@@ -20,17 +28,6 @@
   backdrop-filter: blur(12px);
   overflow: hidden auto;
   z-index: 30;
-  transition: width 0.2s ease, flex-basis 0.2s ease, padding 0.2s ease;
-}
-
-/* 桌面端折叠：整条侧栏收成 0 宽（品牌已移到全局顶栏，折叠后仍可从顶栏回首页） */
-.siderCollapsed {
-  width: 0;
-  flex: 0 0 0;
-  padding-left: 0;
-  padding-right: 0;
-  border-right: none;
-  overflow: hidden;
 }
 
 .navGroup {
@@ -103,7 +100,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: 0;
 }
 
 .content {
@@ -145,36 +142,30 @@
 
 /* ───── 窄屏：侧栏改为抽屉 ───── */
 @media (max-width: 900px) {
+  /* 抽屉从顶栏下沿开始，顶栏与汉堡按钮始终可点 */
   .sider {
     position: fixed;
-    top: 0;
+    top: 56px;
     left: 0;
     bottom: 0;
     width: 240px;
     flex: 0 0 240px;
-    height: 100vh;
+    height: calc(100vh - 56px);
     transform: translateX(-100%);
     transition: transform 0.22s ease;
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.35);
-  }
-
-  /* 窄屏下折叠态不该生效：抽屉尺寸与内边距复原 */
-  .siderCollapsed {
-    width: 240px;
-    flex: 0 0 240px;
-    padding: 0.9rem 0.65rem;
-    border-right: 1px solid var(--border-color);
   }
 
   .siderOpen {
     transform: translateX(0);
   }
 
+  /* 抽屉与遮罩要盖住顶栏（顶栏 z-index 20、侧栏 30） */
   .backdrop {
     display: block;
     position: fixed;
-    inset: 0;
-    z-index: 20;
+    inset: 56px 0 0 0;
+    z-index: 25;
     background: rgba(0, 0, 0, 0.35);
   }
 
