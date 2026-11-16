@@ -16,17 +16,21 @@
 - 数据：`@supabase/supabase-js`、`src/data/sinaApi.ts`（新浪/腾讯行情）
 - 工具链：`eslint`（flat config）＋ `typescript-eslint`
 - 部署：GitHub Actions → `next build` → 上传 `out/` → GitHub Pages（子路径 `/stock-dashboard/`）
-- **历史遗留（未删、仍是 git 跟踪文件）**：`index.html`、`vite.config.ts`、`src/main.tsx`、
-  `tsconfig.app.json`、`tsconfig.node.json`（Vite 时代产物，Next 构建不引用，属于可清理项）；
-  `devDependencies` 里仍留着 `vite` / `@vitejs/plugin-react`，`npm ci` 会多装它们但不影响构建
+- **已移除（2026-11-16 Vite 清理，见 git 历史）**：`index.html`、`vite.config.ts`、`src/main.tsx`、
+  `tsconfig.app.json`、`tsconfig.node.json`，以及 devDependencies 里的 `vite` / `@vitejs/plugin-react`
 - `next-env.d.ts` 由 Next 自动生成：`next dev` 会把它改成 `.next/dev/types/...`、`next build` 又改回
   `.next/types/...` ⇒ 跑完 dev 后 `git status` 出现这一行改动是正常的，**不要手工编辑**，也不必提交
 
 ## 3. 目录
 
 ```
-app/            layout.tsx / page.tsx / not-found.tsx / globals.css / fonts
-src/            App.tsx / components / hooks / lib / types / data / index.css / App.module.css
+app/            layout.tsx（AppShell 外壳）/ page.tsx（/ 看板）/ settings/ / about/ / not-found.tsx
+                globals.css / fonts
+src/            App.tsx（DashboardProvider：全部业务状态）
+                store/context.ts（Context + useDashboard）
+                components/（AppShell 外壳、Navbar、SectionGroup、BoardCard、StockRow、
+                             AddStockForm、Modal、ToastContainer）
+                hooks/ lib/ types/ data/ index.css / App.module.css
 server/         app.py ＋ data.db ＋ requirements.txt ＋ supabase.sql（历史遗留，未参与构建）
 scripts/        构建与辅助脚本
 data/           boards.json（4 KB，小型兜底数据）
@@ -48,13 +52,13 @@ npm run lint                  # = eslint .
 | 命令 | 结果 |
 |---|---|
 | `npm run build` | **EXIT=0** ✅（`output: 'export'`，产物在 `out/`；默认与 `NEXT_PUBLIC_BASE_PATH=/stock-dashboard` 两种模式均通过） |
-| `npm run lint` | **EXIT=1**，**21 errors / 0 warnings**（与迁移前逐条相同，迁移新增 0 条） |
+| `npm run lint` | **EXIT=1**，**16 errors / 0 warnings**（迁移前基线 21；多路由改造后仍无新增，且因 `no-unused-vars` 改为忽略 `_` 前缀参数而下降） |
 
 **所以 build 是绿的、lint 是红的（历史债务）。** 已知错误类型：
-`react-hooks/refs`（如 `boardsRef.current = _boards` 在 render 期赋值）、
-`@typescript-eslint/no-explicit-any`（如 `src/lib/supabase.ts`）等，集中在 `src/data/*` 与 `src/hooks/*`。
+`@typescript-eslint/no-explicit-any`（集中在 `src/data/*` 与 `src/lib/supabase.ts`）、
+`react-hooks/refs`（`src/hooks/useRealtimePrices.ts` 在 render 期写 ref）、`no-useless-assignment`。
 
-**lint 的判据是「不新增错误」，不是「归零」。** 动手前先记下失败条数（当前 **21**）与失败规则名；
+**lint 的判据是「不新增错误」，不是「归零」。** 动手前先记下失败条数（当前 **16**）与失败规则名；
 改完只允许这组数字变小或不变。顺手修掉的要同步下调基线，否则下次会漏判。
 
 ## 5. 本地起服务
@@ -80,8 +84,14 @@ GitHub Pages 走子路径时资源前缀靠 `NEXT_PUBLIC_BASE_PATH` 注入 `base
 ## 7. 已知约束
 
 - 无单元测试（**没有** test 脚本），验收 = build（必过）＋ lint（不新增）＋ 目标页面手点一遍
-- `app/page.tsx` 用 `dynamic(..., { ssr: false })` 加载 `src/App`：业务代码在渲染期直接读 `localStorage`，
-  **不要**改成静态导入或 `'use client'` 直接渲染，否则静态导出会因 `localStorage` 未定义而失败
+- **业务状态只有一处**：`src/App.tsx` 的 `DashboardProvider`（板块、行情、Supabase 同步、主题）。
+  页面只能通过 `useDashboard()` 读取与操作；**不要**在页面里另起 state 存板块数据，
+  否则切路由会重建、行情轮询会重复。
+- **新增页面＝两处**：建 `app/<name>/page.tsx`，并在 `src/components/AppShell.tsx` 的 `NAV` 里加一项
+  （图标 + `href` + 文案）；侧栏高亮按 `usePathname()` 精确匹配 `href`。
+- 业务状态读 localStorage（板块、主题、刷新间隔），必须**水合后**再渲染：`AppShell` 用
+  `useSyncExternalStore` 判断客户端，首屏只吐一个 loading 占位。别把 provider 挪到预渲染路径上，
+  否则静态导出会因 `localStorage` 未定义而失败。
 - antd 样式是 cssinjs 运行时注入，**外部 CSS 覆盖 `.ant-*` 常常失效**（优先级/注入顺序），
   要改组件外观优先用组件 props（如 `Modal` 的 `styles.container`）
 - 主题色只有一处真源：`src/index.css` 的 CSS 变量；Tailwind 与 antd token 都映射到它，别另起一套色板
