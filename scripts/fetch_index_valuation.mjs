@@ -2,7 +2,7 @@
  * 宽基指数估值（PE-TTM / PB + 1/3/5/10 年历史百分位）取数脚本
  *
  * 用法：npm run refresh:valuation
- * 产物：src/data/indexValuation.json（构建时静态打包，页面不请求外网）
+ * 产物：public/data/index-valuation.json（部署为静态资源，页面运行时从服务器取；不进 JS bundle）
  *
  * 数据源：蛋卷基金指数估值接口（JSON API，非页面抓取）
  *   - pe_history / pb_history 返回全量周频序列（2016-11 起）
@@ -14,7 +14,7 @@
 import { writeFile, mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
-const OUT = resolve(process.cwd(), 'src/data/indexValuation.json');
+const OUT = resolve(process.cwd(), 'public/data/index-valuation.json');
 const API = 'https://danjuanfunds.com/djapi/index_eva';
 const HEADERS = {
   'User-Agent':

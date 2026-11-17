@@ -17,7 +17,7 @@
 | 📊 **涨跌统计** | 每个板块显示涨跌加数比例 `x:y` + 均涨幅 |
 | 📈 **涨跌幅排序** | 板块内股票按当日涨跌幅从高到低排列 |
 | 🎯 **实时行情** | 新浪/腾讯双 API 获取实时价格，自动切换 |
-| 🔍 **智能搜索** | 内置 7214 只 A 股全量数据，本地搜索秒级响应 |
+| 🔍 **智能搜索** | 全量 A 股清单（约 5200 只）放服务器、按需下发，搜索秒回 |
 | ☁️ **云端同步** | Supabase 自动保存 + 15 秒轮询，多端数据一致 |
 | 💾 **本地持久化** | localStorage 缓存，离线可用 |
 | 🌙 **暗色/亮色主题** | 一键切换，持久化保存 |
@@ -39,7 +39,7 @@
 | 布局 | 全局顶栏（对标 etf.maxmeng.top：汉堡 + 品牌 + 消息 + 个人中心）＋ 左侧导航（桌面可折叠、≤900px 收成抽屉）＋ 仅「自选」页的行情工具条；状态由 `src/App.tsx` 的 `DashboardProvider` 跨路由共享 |
 | UI | **Ant Design 6**（cssinjs 主题，`ConfigProvider` 跟随暗/亮主题）＋ **Tailwind CSS 3**（颜色全部映射到 `src/index.css` 的 CSS 变量）＋ CSS Modules |
 | 字体 | `next/font/local` 自托管 Inter（不依赖 Google Fonts） |
-| 数据 | `@supabase/supabase-js`（浏览器端直连）＋ 新浪/腾讯行情 API ＋ 蛋卷基金指数估值接口（构建前用 `npm run refresh:valuation` 落 `src/data/indexValuation.json`） |
+| 数据 | `@supabase/supabase-js`（浏览器端直连）＋ 新浪/腾讯行情 API ＋ **静态数据集放服务器**：`public/data/stocks.json`（A 股清单）、`public/data/index-valuation.json`（宽基估值，`npm run refresh:valuation` 生成）；两者都**不打包进 JS**，页面运行时按需取 |
 | 部署 | GitHub Actions → `next build` → 上传 `out/` → GitHub Pages（项目子路径 `/stock-dashboard/`） |
 
 ---
@@ -131,11 +131,11 @@ src/
 │   ├── apiClient.ts         # Supabase 同步
 │   ├── boardsCompress.ts    # 数据压缩/展开
 │   ├── sinaApi.ts           # 实时行情 API
-│   ├── stockSearchDb.ts     # 股票搜索
-│   ├── fullStocks.ts        # 7214 只 A 股
+│   ├── stockSearchDb.ts     # 股票搜索（运行时取服务器清单）
 │   └── utils.ts             # 工具函数
 ├── lib/
 │   ├── supabase.ts          # Supabase 客户端（NEXT_PUBLIC_* 环境变量）
+│   ├── dataSource.ts        # 数据集取数（DATA_BASE + 并发去重）
 │   └── assets.ts            # basePath 前缀 + SITE_ICON（public/Icon-60@3x.png）
 ├── hooks/
 │   ├── useLocalStorage.ts
@@ -164,16 +164,26 @@ src/
 持久化（离线兜底）
   板块/股票 → localStorage（stock_boards, stock_board_order）
   主题/间隔 → localStorage（stock_theme_mode, stock_interval）
+
+静态数据集（服务器，不进 JS bundle）
+  data/stocks.json          → 打开「添加股票」时预取（140 KB / gzip 48 KB），取回常驻内存
+  data/index-valuation.json → 「宽基」页运行时取（4 KB）
+  换服务器：NEXT_PUBLIC_DATA_BASE_URL 指向对象存储/CDN 的公开目录（需同名文件），前端代码不动
 ```
 
 ### 股票数据库
 
-内置 **7214 只 A 股**（沪主板、深主板、创业板、科创板、北交所），
-搜索仅使用内存数据，不依赖外部网络。可通过脚本更新：
+全量 A 股清单放**服务器**（`public/data/stocks.json`，约 5200 只），构建产物里不含这批数据：
+打开「添加股票」时预取，取回常驻内存，搜索秒回；清单未命中再退到新浪 suggest 接口兜底。
+更新清单（在项目根目录）：
 
 ```bash
-python3 scripts/gen_stock_db.py > src/data/fullStocks.ts
+python3 scripts/gen_stock_db.py            # 直接写 public/data/stocks.json
 ```
+
+板块（沪主板/深主板/创业板/科创板）由代码前缀唯一推导，不从接口沿用——历史数据里
+688/300 被同时标成 sh/sz 与 star/chinext，同一只股票会搜出两条。当前清单无北交所标的，
+北交所代码走接口兜底。
 
 ### 压缩存储格式
 

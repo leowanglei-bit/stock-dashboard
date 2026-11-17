@@ -1,10 +1,10 @@
 'use client';
 
 import { Button, Input, Empty } from 'antd';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import styles from './AddStockForm.module.css';
-import { searchStocks } from '../data/stockSearchDb';
-import type { StockSeed } from '../data/fullStocks';
+import { searchStocks, preloadStockDb, getStockDbError } from '../data/stockSearchDb';
+import type { StockSeed } from '../data/utils';
 import { entryToStock } from '../data/utils';
 import type { Stock } from '../types';
 
@@ -19,6 +19,12 @@ export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
   const [results, setResults] = useState<StockSeed[]>([]);
   const [searched, setSearched] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [dbFailed, setDbFailed] = useState(false);
+
+  // 打开搜索框即预取股票清单（服务端下发，不打进 bundle）
+  useEffect(() => {
+    preloadStockDb();
+  }, []);
 
   const doAdd = (stock: Stock) => {
     onAddStock(boardId, stock);
@@ -32,6 +38,7 @@ export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
     setSearched(true);
     const res = await searchStocks(q);
     setResults(res);
+    setDbFailed(Boolean(getStockDbError()));
     setSearching(false);
   }, [query]);
 
@@ -54,6 +61,12 @@ export default function AddStockForm({ boardId, onAddStock, onClose }: Props) {
           查询
         </Button>
       </div>
+
+      {dbFailed && (
+        <div className={styles.dbWarn}>
+          股票清单（服务器）加载失败，本次只用在线搜索补充，结果可能不全；重新查询可重试。
+        </div>
+      )}
 
       {searched && !searching && results.length > 0 && (
         <div className={styles.resultList}>

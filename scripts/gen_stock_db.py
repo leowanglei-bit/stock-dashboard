@@ -1,69 +1,73 @@
-"""从新浪 API 拉取全量 A 股数据，生成 stockSearchDb.ts 的内置数据"""
+"""从新浪 API 拉取全量 A 股清单，生成 public/data/stocks.json。
+
+清单不打进 JS bundle：部署后由服务器以静态文件提供，页面运行时 fetch 取用。
+用法（在项目根目录）：python3 scripts/gen_stock_db.py
+
+板块（market）由代码前缀唯一推导，不再沿用接口的节点归属——历史数据里 688/300 既被标成
+sh/sz 又重复出现在 star/chinext，同一只股票搜索会出两条。
+"""
 
 import subprocess, json, sys, time
+from pathlib import Path
 
-MARKET_NODES = {
-    'sh_a': 'sh',     # 沪主板 600000-605xxx ~1600
-    'sz_a': 'sz',     # 深主板 000001-002xxx ~1500
-    'cyb': 'chinext', # 创业板 300xxx-301xxx ~1300
-    'kcb': 'star',    # 科创板 688xxx ~560
-    'bse': 'bse',     # 北交所 8xxxxx ~260
-}
+MARKET_NODES = ['sh_a', 'sz_a', 'cyb', 'kcb', 'bse']
+MARKET_ORDER = ['sh', 'sz', 'chinext', 'star', 'bse']
 
-MARKET_VALUES = {'sh': 0, 'sz': 1, 'chinext': 2, 'star': 3, 'bse': 4}
+
+def market_of(code: str) -> str:
+    """代码前缀 → 板块（唯一推导，不设人工维护字段）"""
+    if code.startswith(('688', '689')):
+        return 'star'
+    if code.startswith(('300', '301', '302')):
+        return 'chinext'
+    if code.startswith(('4', '8')):
+        return 'bse'
+    if code.startswith('6'):
+        return 'sh'
+    return 'sz'
+
 
 def fetch_page(node, page):
     url = f'https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeData?page={page}&num=100&sort=symbol&asc=1&node={node}&_s_r_a=init'
     try:
-        r = subprocess.run(['curl', '-s', url, '--header', 'Referer: https://finance.sina.com.cn'], capture_output=True, text=True, timeout=15)
+        r = subprocess.run(['curl', '-s', url, '--header', 'Referer: https://finance.sina.com.cn'],
+                           capture_output=True, text=True, timeout=15)
         data = json.loads(r.stdout)
         if isinstance(data, list) and len(data) > 0:
             return data
-    except: pass
+    except Exception:
+        pass
     return []
 
-all_stocks = []
-for node, market in MARKET_NODES.items():
-    print(f'Fetching {node} ({market})...', file=sys.stderr)
+
+names = {}
+for node in MARKET_NODES:
+    print(f'Fetching {node}...', file=sys.stderr)
     page = 1
     while True:
         data = fetch_page(node, page)
         if not data:
             break
         for item in data:
-            code = item.get('code', '')
-            name = item.get('name', '')
-            if code and name:
-                all_stocks.append((code, name, MARKET_VALUES[market]))
-        print(f'  page {page}: {len(data)} stocks (total {len(all_stocks)})', file=sys.stderr)
+            code = str(item.get('code', ''))
+            name = str(item.get('name', ''))
+            if len(code) == 6 and code.isdigit() and name:
+                names.setdefault(code, name)
+        print(f'  page {page}: {len(data)} rows (unique {len(names)})', file=sys.stderr)
         if len(data) < 100:
             break
         page += 1
         time.sleep(0.3)
 
-print(f'\nTotal: {len(all_stocks)} stocks', file=sys.stderr)
+stocks = [[code, names[code], MARKET_ORDER.index(market_of(code))] for code in sorted(names)]
+payload = {
+    'generatedAt': time.strftime('%Y-%m-%d'),
+    'count': len(stocks),
+    'marketOrder': MARKET_ORDER,
+    'stocks': stocks,
+}
 
-# 生成 TS 代码
-lines = []
-lines.append("// 全量 A 股数据 — 自动生成，请勿手动修改")
-lines.append(f"// 生成时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
-lines.append(f"// 总计: {len(all_stocks)} 只股票")
-lines.append("")
-lines.append("export interface StockSeed {")
-lines.append("  code: string;")
-lines.append("  name: string;")
-lines.append("  market: 'sh' | 'sz' | 'star' | 'chinext' | 'bse';")
-lines.append("}")
-lines.append("")
-lines.append(f"export const ALL_STOCKS: StockSeed[] = [")
-
-for code, name, mkt in all_stocks:
-    market_str = ['sh', 'sz', 'chinext', 'star', 'bse'][mkt]
-    # 处理名称中的特殊字符
-    escaped_name = name.replace('\\', '\\\\').replace("'", "\\'")
-    lines.append(f"  {{ code: '{code}', name: '{escaped_name}', market: '{market_str}' }},")
-
-lines.append("];")
-lines.append("")
-
-print('\n'.join(lines))
+out = Path(__file__).resolve().parent.parent / 'public' / 'data' / 'stocks.json'
+out.parent.mkdir(parents=True, exist_ok=True)
+out.write_text(json.dumps(payload, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
+print(f'写入 {out}（{len(stocks)} 只）', file=sys.stderr)
