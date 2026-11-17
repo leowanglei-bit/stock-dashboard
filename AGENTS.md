@@ -7,7 +7,8 @@
 
 ## 1. 这是什么
 
-股票看板。纯前端（浏览器端直连 Supabase ＋ 新浪/腾讯行情 API），静态导出后部署到 GitHub Pages。
+股票看板。纯前端（浏览器端直连 Supabase ＋ 新浪/腾讯行情 API ＋ 服务器下发的静态数据集），静态导出后部署到 GitHub Pages。
+**静态数据集（A 股清单、宽基估值）只放 `public/data/`，由服务器静态下发，不进 JS bundle。**
 仓库里另有 `server/`（历史遗留的 Python 本地服务），前端构建与部署**不依赖**它。
 
 ## 2. 技术栈
@@ -15,10 +16,13 @@
 - 框架：**Next.js 16 App Router ＋ React 19 ＋ TypeScript**，`output: 'export'`（纯静态，**没有** Node 运行时、没有 SSR/ISR/Server Actions）
 - UI：**Ant Design 6**（cssinjs 运行时注入，主题由 `ConfigProvider` 控制）＋ **Tailwind CSS 3**（颜色全部映射到 `src/index.css` 的 CSS 变量）＋ 既有 CSS Modules
 - 字体：`next/font/local` 自托管 Inter（`app/fonts/*.woff2`），构建与运行都不访问 Google Fonts
-- 数据：`@supabase/supabase-js`、`src/data/sinaApi.ts`（新浪/腾讯行情）、`src/data/indexValuation.json`
-  （宽基估值，由 `npm run refresh:valuation` 跑 `scripts/fetch_index_valuation.mjs` 从蛋卷接口生成；
-  页面不请求外网，改数据要重跑脚本并提交 JSON；中证2000 无蛋卷序列，PE 改走中证官方
-  `perf/indexCsiDsPe`，口径不同故单独区块输出，**不要并进主表**）
+- 数据：`@supabase/supabase-js`、`src/data/sinaApi.ts`（新浪/腾讯行情）、
+  `public/data/stocks.json`（A 股清单，`scripts/gen_stock_db.py` 生成）、
+  `public/data/index-valuation.json`（宽基估值，`scripts/fetch_index_valuation.mjs`／`npm run refresh:valuation` 生成）。
+  **两个数据集都是部署后由服务器下发的静态文件，页面运行时 fetch（`src/lib/dataSource.ts`），绝不 import 成模块**；
+  换服务器只需 `NEXT_PUBLIC_DATA_BASE_URL` 指向对象存储/CDN 的公开目录（需同名文件）。
+  页面不请求外网（除行情 API、Supabase、数据集）；中证2000 无蛋卷序列，PE 改走中证官方
+  `perf/indexCsiDsPe`，口径不同故单独区块输出，**不要并进主表**
 - 工具链：`eslint`（flat config）＋ `typescript-eslint`
 - 部署：GitHub Actions → `next build` → 上传 `out/` → GitHub Pages（子路径 `/stock-dashboard/`）；
   `schedule` 每天 05:40 CST 先跑 `refresh:valuation` 再构建（push 构建不跑，避免外网接口挡住发布）
@@ -31,15 +35,17 @@
 
 ```
 app/            layout.tsx（AppShell 外壳）/ page.tsx（/ 自选）/ settings/ / about/ / not-found.tsx
+                broad/（page.tsx 只管 metadata；ValuationBoard.tsx 是客户端的表 + 运行时取数）
                 globals.css / fonts
 src/            App.tsx（DashboardProvider：全部业务状态）
                 store/context.ts（Context + useDashboard）
                 components/（AppShell 外壳、SiteHeader 全局顶栏、BoardToolbar 自选页工具条、
                              SectionGroup、BoardCard、StockRow、AddStockForm、Modal、ToastContainer）
-                hooks/ lib/ types/ data/ index.css / App.module.css
+                hooks/ lib/（assets.ts、dataSource.ts、supabase.ts）types/ data/ index.css / App.module.css
 server/         app.py ＋ data.db ＋ requirements.txt ＋ supabase.sql（历史遗留，未参与构建）
-scripts/        构建与辅助脚本
-data/           boards.json（4 KB，小型兜底数据）
+scripts/        构建与辅助脚本（fetch_index_valuation.mjs、gen_stock_db.py）
+public/data/    服务器下发的静态数据集：stocks.json（A 股清单）、index-valuation.json（宽基估值）
+data/           boards.json（4 KB，小型兜底数据，git 忽略）
 out/            静态导出产物（勿手改，git 忽略）
 next.config.ts / tailwind.config.mjs / postcss.config.mjs / tsconfig.json / eslint.config.js
 ```
@@ -58,13 +64,13 @@ npm run lint                  # = eslint .
 | 命令 | 结果 |
 |---|---|
 | `npm run build` | **EXIT=0** ✅（`output: 'export'`，产物在 `out/`；默认与 `NEXT_PUBLIC_BASE_PATH=/stock-dashboard` 两种模式均通过） |
-| `npm run lint` | **EXIT=1**，**16 errors / 0 warnings**（迁移前基线 21；多路由改造后仍无新增，且因 `no-unused-vars` 改为忽略 `_` 前缀参数而下降） |
+| `npm run lint` | **EXIT=1**，**15 errors / 0 warnings**（迁移前基线 21；多路由改造后仍无新增，且因 `no-unused-vars` 改为忽略 `_` 前缀参数而下降） |
 
 **所以 build 是绿的、lint 是红的（历史债务）。** 已知错误类型：
 `@typescript-eslint/no-explicit-any`（集中在 `src/data/*` 与 `src/lib/supabase.ts`）、
 `react-hooks/refs`（`src/hooks/useRealtimePrices.ts` 在 render 期写 ref）、`no-useless-assignment`。
 
-**lint 的判据是「不新增错误」，不是「归零」。** 动手前先记下失败条数（当前 **16**）与失败规则名；
+**lint 的判据是「不新增错误」，不是「归零」。** 动手前先记下失败条数（当前 **15**）与失败规则名；
 改完只允许这组数字变小或不变。顺手修掉的要同步下调基线，否则下次会漏判。
 
 ## 5. 本地起服务
@@ -101,6 +107,9 @@ GitHub Pages 走子路径时资源前缀靠 `NEXT_PUBLIC_BASE_PATH` 注入 `base
   折叠侧栏＝不渲染 `<aside>`，别用 CSS 压宽度（品牌在顶栏，侧栏没有 logo 行）。
 - **静态资源**：`public/Icon-60@3x.png` 是站点图标与顶栏 logo 的唯一来源，路径走
   `src/lib/assets.ts` 的 `SITE_ICON`/`asset()`（裸 `<img>` 不带 `basePath`，子路径部署会 404）。
+- **数据集**：A 股清单与宽基估值只经 `src/lib/dataSource.ts` 的 `fetchDataset()` 从服务器取
+  （`DATA_BASE` 默认同源 `/data`，`basePath` 已含）；**不要再 import 成模块、塞回 `src/data/` 或内联进 bundle**——
+  迁走它们就是为了不让数据撑大首屏 JS（实测 1600→1259 KB）。取数失败必须落到界面提示，不许静默空列表。
 - 业务状态读 localStorage（板块、主题、刷新间隔），必须**水合后**再渲染：`AppShell` 用
   `useSyncExternalStore` 判断客户端，首屏只吐一个 loading 占位。别把 provider 挪到预渲染路径上，
   否则静态导出会因 `localStorage` 未定义而失败。
