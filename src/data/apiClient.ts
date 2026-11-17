@@ -31,15 +31,17 @@ let pendingResolves: Array<(msg: string) => void> = [];
 async function doSave(data: ServerData): Promise<{ ok: boolean; msg: string }> {
   if (!isSupabaseConfigured) return { ok: false, msg: 'Supabase 未配置' };
   const compressed = compress(data.boards, data.boardOrder);
+  // updated_at 由客户端写入（表上没有触发器，避免依赖 moddatetime 扩展）
+  const payload = { data: compressed, updated_at: new Date().toISOString() };
   try {
     const { data: existing, error: selErr } = await supabase.from(TABLE).select('id').limit(1);
     if (selErr) return { ok: false, msg: `查询失败: ${selErr.message}` };
     if (existing && existing.length > 0) {
-      const { error } = await supabase.from(TABLE).update({ data: compressed }).eq('id', existing[0].id);
+      const { error } = await supabase.from(TABLE).update(payload).eq('id', existing[0].id);
       if (error) return { ok: false, msg: `更新失败: ${error.message}` };
       return { ok: true, msg: '' };
     } else {
-      const { error } = await supabase.from(TABLE).insert({ data: compressed });
+      const { error } = await supabase.from(TABLE).insert(payload);
       if (error) return { ok: false, msg: `插入失败: ${error.message}` };
       return { ok: true, msg: '' };
     }
